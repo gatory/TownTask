@@ -1,0 +1,12 @@
+{
+  "ebooks": [
+    {
+      "path": "books/sample1.pdf",
+      "title": "Sample Book 1"
+    },
+    {
+      "path": "books/sample2.pdf",
+      "title": "Sample Book 2"
+    }
+  ]
+}
