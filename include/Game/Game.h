@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/World.h"
+#include "Core/Constants.h"
 #include "SceneManager.h"
 #include "GameState.h"
 #include "Systems/AnimationSystem.h"
@@ -32,10 +33,23 @@ private:
     Texture2D speechBubbleTexture;
     bool showDebug;
     std::vector<std::string> debugOverlapInfo;
+    // Sound effects
+    Sound sfxOpenDoor;
+    Sound sfxCloseDoor;
+    Sound sfxCoffeeAmbience;
+    Sound sfxLevelComplete;
+    // Background music
+    Music mainMusic;
+    bool musicPlaying = false;
+    bool mainMusicLoaded = false;
+    
+
+    void PlaySfx(const Sound& s);
     
     void InitializeEntities();
     void Update(float deltaTime);
     void Render();
+    int previousScene = SceneID::MAIN;
 
 public:
     Game();

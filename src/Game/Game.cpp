@@ -8,8 +8,25 @@ Game::Game() {
     
     InitWindow(GameConfig::SCREEN_WIDTH, GameConfig::SCREEN_HEIGHT, "Town Game");
     
+    // Initialize audio device before loading sounds
+    InitAudioDevice();
+
     speechBubbleTexture = LoadTexture(AssetPath::SPEECH_BUBBLE);
     showDebug = false;
+
+    // Load SFX (if present)
+    if (IsAudioDeviceReady()) {
+        sfxOpenDoor = LoadSound(AssetPath::SFX_OPEN_DOOR);
+        sfxCloseDoor = LoadSound(AssetPath::SFX_CLOSE_DOOR);
+        sfxCoffeeAmbience = LoadSound(AssetPath::SFX_COFFEEAMBIENCE);
+        sfxLevelComplete = LoadSound(AssetPath::SFX_LEVEL_COMPLETE);
+        // Load background music
+        mainMusic = LoadMusicStream(AssetPath::MAIN_MUSIC);
+        // Assume LoadMusicStream returned a usable Music object; mark as loaded and play
+        mainMusicLoaded = true;
+        PlayMusicStream(mainMusic);
+        musicPlaying = false;
+    }
 
     InitializeEntities();
     renderSystem.LoadTextures(world);
@@ -18,6 +35,19 @@ Game::Game() {
 Game::~Game() {
     UnloadTexture(speechBubbleTexture);
     renderSystem.UnloadTextures(world);
+    // Unload sounds
+    if (IsAudioDeviceReady()) {
+        UnloadSound(sfxOpenDoor);
+        UnloadSound(sfxCloseDoor);
+        UnloadSound(sfxCoffeeAmbience);
+        UnloadSound(sfxLevelComplete);
+        // Unload and stop music
+        if (!musicPlaying) {
+            StopMusicStream(mainMusic);
+            UnloadMusicStream(mainMusic);
+        }
+        CloseAudioDevice();
+    }
     CloseWindow();
 }
 
@@ -239,8 +269,23 @@ void Game::InitializeEntities() {
 void Game::Update(float deltaTime) {
     int currentScene = sceneManager.GetCurrentScene();
 
+    // Detect scene transition and play door sounds
+    if (previousScene != currentScene) {
+        if (previousScene == SceneID::MAIN && currentScene != SceneID::MAIN) {
+            // Entering an interior
+            PlaySfx(sfxOpenDoor);
+        } else if (previousScene != SceneID::MAIN && currentScene == SceneID::MAIN) {
+            // Exiting to main
+            PlaySfx(sfxCloseDoor);
+        }
+        previousScene = currentScene;
+    }
+
     // Update systems
     animationSystem.Update(world, deltaTime);
+
+    // Update music stream each frame
+    if (IsAudioDeviceReady() && !musicPlaying) UpdateMusicStream(mainMusic);
 
     // Remember player's frozen state to detect unfreeze
     Entity playerEntity = INVALID_ENTITY;
@@ -270,6 +315,8 @@ void Game::Update(float deltaTime) {
                 if (!it || !iz) continue;
                 if (it->interactionType == "barista" && CheckCollisionRecs(phb->bounds, iz->bounds)) {
                     pomodoroTimer.Start();
+                    // Play start sfx
+                    PlaySfx(sfxCoffeeAmbience);
                     PlayerInput* pi = world.GetPlayerInput(playerEntity);
                     if (pi) pi->frozen = true;
                     SpeechBubble* sb = world.GetSpeechBubble(playerEntity);
@@ -292,6 +339,8 @@ void Game::Update(float deltaTime) {
             pomodoroTimer.Reset();
             SpeechBubble* sb = world.GetSpeechBubble(playerEntity);
             if (sb) sb->active = false;
+            // Play reset/complete sfx
+            PlaySfx(sfxLevelComplete);
         }
     }
 
@@ -318,6 +367,10 @@ void Game::Update(float deltaTime) {
             break;
         }
     }
+}
+
+void Game::PlaySfx(const Sound& s) {
+    if (IsAudioDeviceReady()) PlaySound(s);
 }
 
 void Game::Render() {

@@ -77,6 +77,8 @@ namespace AssetPath {
     // Sound assets
     constexpr const char* SFX_OPEN_DOOR = "assets/opening-door-411632.mp3";
     constexpr const char* SFX_CLOSE_DOOR = "assets/close-door-382723.mp3";
-    constexpr const char* SFX_NOTIFICATION = "assets/notification-9-158194.mp3";
+    constexpr const char* SFX_COFFEEAMBIENCE = "assets/white-noise-358382.mp3";
     constexpr const char* SFX_LEVEL_COMPLETE = "assets/game-level-complete-143022.mp3";
+    constexpr const char* MAIN_MUSIC = "assets/background.mp3";
+
 }
