@@ -48,7 +48,8 @@ void Game::InitializeEntities() {
     // ======= POMODORO BUILDING =======
     Entity pomodoro = world.CreateEntity();
     world.AddPosition(pomodoro, SCREEN_WIDTH - 250, 100);
-    world.AddSprite(pomodoro, "", POMODORO_WIDTH, POMODORO_HEIGHT, BROWN);
+    // Use a pixel-art building sprite for the pomodoro shop
+    world.AddSprite(pomodoro, AssetPath::HOUSE_3, POMODORO_WIDTH, POMODORO_HEIGHT, WHITE);
     world.AddHitbox(pomodoro, POMODORO_WIDTH, POMODORO_HEIGHT);
     world.AddInteractionZone(pomodoro, POMODORO_WIDTH + 20, POMODORO_HEIGHT + 20, -10, -10);
     world.AddBuilding(pomodoro, "Pomodoro", SceneID::POMODORO_INTERIOR);
@@ -88,7 +89,8 @@ void Game::InitializeEntities() {
     // ======= LIBRARY BUILDING =======
     Entity library = world.CreateEntity();
     world.AddPosition(library, 50, 150);
-    world.AddSprite(library, "", LIBRARY_WIDTH, LIBRARY_HEIGHT, DARKPURPLE);
+    // Use a pixel-art building sprite for the library
+    world.AddSprite(library, AssetPath::HOUSE_4, LIBRARY_WIDTH, LIBRARY_HEIGHT, WHITE);
     world.AddHitbox(library, LIBRARY_WIDTH, LIBRARY_HEIGHT);
     world.AddInteractionZone(library, LIBRARY_WIDTH + 20, LIBRARY_HEIGHT + 20, -10, -10);
     world.AddBuilding(library, "Library", SceneID::LIBRARY_INTERIOR);
@@ -144,7 +146,8 @@ void Game::InitializeEntities() {
     // ======= HOUSE BUILDING =======
     Entity house = world.CreateEntity();
     world.AddPosition(house, SCREEN_WIDTH - 400, 300);
-    world.AddSprite(house, "", HOUSE_WIDTH, HOUSE_HEIGHT, MAROON);
+    // Use a pixel-art house sprite from assets and scale it to house dimensions
+    world.AddSprite(house, AssetPath::HOUSE_1, HOUSE_WIDTH, HOUSE_HEIGHT, WHITE);
     world.AddHitbox(house, HOUSE_WIDTH, HOUSE_HEIGHT);
     world.AddInteractionZone(house, HOUSE_WIDTH + 20, HOUSE_HEIGHT + 20, -10, -10);
     world.AddBuilding(house, "My House", SceneID::HOUSE_INTERIOR);
