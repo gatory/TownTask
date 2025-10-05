@@ -97,55 +97,55 @@ void World::AddLibraryData(Entity e, const LibraryData& data) {
 void World::AddTodoListData(Entity e, const TodoListData& data) {
     todoListData[e] = data;
 }
-void World::AddFaceDetection(Entity entity) {
-    FaceDetection fd;
-    faceDetections[entity] = fd;
-}
+// void World::AddFaceDetection(Entity entity) {
+//     FaceDetection fd;
+//     faceDetections[entity] = fd;
+// }
 
-void World::AddFaceDetection(Entity entity, float awayThreshold, float reactionCooldown) {
-    FaceDetection fd;
-    fd.awayThreshold = awayThreshold;
-    fd.reactionCooldown = reactionCooldown;
-    faceDetections[entity] = fd;
-}
+// void World::AddFaceDetection(Entity entity, float awayThreshold, float reactionCooldown) {
+//     FaceDetection fd;
+//     fd.awayThreshold = awayThreshold;
+//     fd.reactionCooldown = reactionCooldown;
+//     faceDetections[entity] = fd;
+// }
 
-FaceDetection* World::GetFaceDetection(Entity entity) {
-    auto it = faceDetections.find(entity);
-    return (it != faceDetections.end()) ? &it->second : nullptr;
-}
+// FaceDetection* World::GetFaceDetection(Entity entity) {
+//     auto it = faceDetections.find(entity);
+//     return (it != faceDetections.end()) ? &it->second : nullptr;
+// }
 
-bool World::HasFaceDetection(Entity entity) const {
-    return faceDetections.find(entity) != faceDetections.end();
-}
+// bool World::HasFaceDetection(Entity entity) const {
+//     return faceDetections.find(entity) != faceDetections.end();
+// }
 
-void World::RemoveFaceDetection(Entity entity) {
-    faceDetections.erase(entity);
-}
+// void World::RemoveFaceDetection(Entity entity) {
+//     faceDetections.erase(entity);
+// }
 
-// Character State component implementation
-void World::AddCharacterState(Entity entity) {
-    CharacterStateComponent csc;
-    characterStates[entity] = csc;
-}
+// // Character State component implementation
+// void World::AddCharacterState(Entity entity) {
+//     CharacterStateComponent csc;
+//     characterStates[entity] = csc;
+// }
 
-void World::AddCharacterState(Entity entity, CharacterState initialState) {
-    CharacterStateComponent csc;
-    csc.currentState = initialState;
-    characterStates[entity] = csc;
-}
+// void World::AddCharacterState(Entity entity, CharacterState initialState) {
+//     CharacterStateComponent csc;
+//     csc.currentState = initialState;
+//     characterStates[entity] = csc;
+// }
 
-CharacterStateComponent* World::GetCharacterState(Entity entity) {
-    auto it = characterStates.find(entity);
-    return (it != characterStates.end()) ? &it->second : nullptr;
-}
+// CharacterStateComponent* World::GetCharacterState(Entity entity) {
+//     auto it = characterStates.find(entity);
+//     return (it != characterStates.end()) ? &it->second : nullptr;
+// }
 
-bool World::HasCharacterState(Entity entity) const {
-    return characterStates.find(entity) != characterStates.end();
-}
+// bool World::HasCharacterState(Entity entity) const {
+//     return characterStates.find(entity) != characterStates.end();
+// }
 
-void World::RemoveCharacterState(Entity entity) {
-    characterStates.erase(entity);
-}
+// void World::RemoveCharacterState(Entity entity) {
+//     characterStates.erase(entity);
+// }
 
 // -------------------- Get methods --------------------
 Position* World::GetPosition(Entity e) {

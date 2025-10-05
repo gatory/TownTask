@@ -55,10 +55,10 @@ private:
     void Render();
     int previousScene = SceneID::MAIN;
 
-    FaceDetectionSystem faceDetectionSystem;
-    Sound sfxAngry;              // Angry reaction sound
-    Sound sfxYawn;               // Sleeping/bored sound
-    bool faceDetectionEnabled;   // Toggle for face detection
+    // FaceDetectionSystem faceDetectionSystem;
+    // Sound sfxAngry;              // Angry reaction sound
+    // Sound sfxYawn;               // Sleeping/bored sound
+    // bool faceDetectionEnabled;   // Toggle for face detection
 
 public:
     Game();

@@ -63,16 +63,16 @@ namespace AssetPath {
     constexpr const char* PLAYER_IDLE = "assets/Idle.png";
     constexpr const char* SPEECH_BUBBLE = "assets/speech_v2_32x24.png";
     constexpr const char* MAIN_BACKGROUND = "assets/map.png";
-    constexpr const char* SHOP_BACKGROUND = "assets/house1.png";
+    constexpr const char* SHOP_BACKGROUND = "assets/shop.png";
     constexpr const char* LIBRARY_BACKGROUND = "assets/library-bg.png";
-    constexpr const char* HOUSE_BACKGROUND = "assets/house-bg.png";
+    constexpr const char* HOUSE_BACKGROUND = "assets/wp9618774.jpg";
     // Pixel art building sprites
     constexpr const char* HOUSE_1 = "assets/house1.png";
     constexpr const char* HOUSE_2 = "assets/house2.png";
     constexpr const char* HOUSE_3 = "assets/house3.png";
     constexpr const char* HOUSE_4 = "assets/house4.png";
     constexpr const char* LIBRARIAN_SPRITE = "assets/librarian-idle.png";
-    constexpr const char* DESK_SPRITE = "assets/desk.png";
+    constexpr const char* DESK_SPRITE = "assets/desk.jpg";
     constexpr const char* DOOR_SPRITE = "assets/door.png";
     // Sound assets
     constexpr const char* SFX_OPEN_DOOR = "assets/opening-door-411632.mp3";
