@@ -49,7 +49,7 @@ public:
     void AddPlayer(Entity e);
     void AddInteractionZone(Entity e, float width, float height, float offsetX = 0, float offsetY = 0);
     void AddBuildingInterior(Entity e, GUIType guiType, const std::string& guiBg, Color guiColor, 
-                            const std::string& gameBg, Color gameColor);
+                            const std::string& gameBg, Texture2D bgTex, Color gameColor);
     void AddAIWander(Entity e, float speed, float minTime, float maxTime);
     void AddExitDoor(Entity e, const std::string& displayText);
     void AddInteractable(Entity e, const std::string& name, const std::string& prompt, 

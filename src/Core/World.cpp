@@ -73,8 +73,8 @@ void World::AddInteractionZone(Entity e, float width, float height, float offset
 }
 
 void World::AddBuildingInterior(Entity e, GUIType guiType, const std::string& guiBg, Color guiColor,
-                                const std::string& gameBg, Color gameColor) {
-    buildingInteriors[e] = BuildingInterior{ guiType, guiBg, guiColor, gameBg, gameColor, {}, {}, false };
+                                const std::string& gameBg, Texture2D bgTex, Color gameColor) {
+    buildingInteriors[e] = BuildingInterior{ guiType, guiBg, guiColor, gameBg, gameColor, bgTex, bgTex, false };
 }
 
 void World::AddAIWander(Entity e, float speed, float minTime, float maxTime) {

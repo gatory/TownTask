@@ -108,7 +108,7 @@ void Game::InitializeEntities() {
     
     // ======= POMODORO BUILDING =======
     Entity pomodoro = world.CreateEntity();
-    world.AddPosition(pomodoro, SCREEN_WIDTH - 250, 100);
+    world.AddPosition(pomodoro, SCREEN_WIDTH / 2 - 100, 300);
     // Use a pixel-art building sprite for the pomodoro shop
     world.AddSprite(pomodoro, AssetPath::HOUSE_3, POMODORO_WIDTH, POMODORO_HEIGHT, WHITE);
     world.AddHitbox(pomodoro, POMODORO_WIDTH, POMODORO_HEIGHT);
@@ -121,7 +121,7 @@ void Game::InitializeEntities() {
     // Pomodoro interior
     Entity pomodoroInterior = world.CreateEntity();
     world.AddBuildingInterior(pomodoroInterior, GUIType::Pomodoro, "", LIGHTGRAY, 
-                             AssetPath::SHOP_BACKGROUND, WHITE);
+                             AssetPath::SHOP_BACKGROUND, LoadTexture(AssetPath::SHOP_BACKGROUND), WHITE);
     world.AddScene(pomodoroInterior, SceneID::POMODORO_INTERIOR);
 
     // Barista / coffee area in bottom half of the pomodoro interior
@@ -139,7 +139,7 @@ void Game::InitializeEntities() {
     
         Entity pomodoroDoor = world.CreateEntity();
         // place near bottom-center of the interior local game area
-        world.AddPosition(pomodoroDoor, SCREEN_WIDTH/2 - DOOR_WIDTH/2, GameConfig::GAME_HEIGHT - DOOR_HEIGHT - 10);
+    world.AddPosition(pomodoroDoor, SCREEN_WIDTH/2 - DOOR_WIDTH/2, GameConfig::GAME_HEIGHT - DOOR_HEIGHT - 10);
     world.AddSprite(pomodoroDoor, "", DOOR_WIDTH, DOOR_HEIGHT, DARKBROWN);
     world.AddHitbox(pomodoroDoor, DOOR_WIDTH, DOOR_HEIGHT);
     world.AddInteractionZone(pomodoroDoor, DOOR_WIDTH + 20, DOOR_HEIGHT + 20, -10, -10);
@@ -162,7 +162,7 @@ void Game::InitializeEntities() {
     // Library interior
     Entity libraryInterior = world.CreateEntity();
     world.AddBuildingInterior(libraryInterior, GUIType::None, "", RAYWHITE, 
-                             AssetPath::LIBRARY_BACKGROUND, BEIGE);
+                             AssetPath::LIBRARY_BACKGROUND, LoadTexture(AssetPath::LIBRARY_BACKGROUND), BEIGE);
     world.AddScene(libraryInterior, SceneID::LIBRARY_INTERIOR);
     
     // Library data
@@ -221,7 +221,7 @@ void Game::InitializeEntities() {
     // House interior
     Entity houseInterior = world.CreateEntity();
     world.AddBuildingInterior(houseInterior, GUIType::None, "", SKYBLUE, 
-                             AssetPath::HOUSE_BACKGROUND, LIGHTGRAY);
+                             AssetPath::HOUSE_BACKGROUND, LoadTexture(AssetPath::HOUSE_BACKGROUND), LIGHTGRAY);
     world.AddScene(houseInterior, SceneID::HOUSE_INTERIOR);
     
     // Todo list data
