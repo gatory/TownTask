@@ -430,24 +430,26 @@ void Game::Render() {
     // Debug overlay: show whether window has focus and arrow key states
     bool focused = IsWindowFocused();
     const char* focusText = focused ? "Window: Focused" : "Window: Not Focused";
-    int focusX = 10;
-    int focusY = 10;
-    DrawText(focusText, focusX, focusY, 14, focused ? DARKBROWN : RED);
+    Font silkscreen_font = LoadFontEx("assets/Silkscreen-Bold.ttf", 20, 0, 0);
+    float focusX = 10;
+    float focusY = 10;
+    Vector2 focusPos = {focusX, focusY};
+    DrawTextEx(silkscreen_font, focusText, focusPos, 16, 1, focused ? DARKBROWN : RED);
     DrawText(TextFormat("Keys L/R/U/D: %d %d %d %d", IsKeyDown(KEY_LEFT), IsKeyDown(KEY_RIGHT), IsKeyDown(KEY_UP), IsKeyDown(KEY_DOWN)),
              10, 30, 12, BLACK);
 
     // Control mode overlay (top-right): two buttons Manual / Wander
-    int panelX = GameConfig::SCREEN_WIDTH - 180;
-    int panelY = 8;
+    float panelX = GameConfig::SCREEN_WIDTH - 200;
+    float panelY = 8;
     int panelW = 172;
-    int panelH = 36;
-    Rectangle panelRec = { (float)panelX, (float)panelY, (float)panelW, (float)panelH };
+    int panelH = 40;
+    Rectangle panelRec = { (float)panelX - 50, (float)panelY, (float)panelW, (float)panelH };
     DrawRectangleRec(panelRec, Fade(RAYWHITE, 0.1f));
 
     int btnW = 80;
-    int btnH = 28;
-    Rectangle manualBtn = { (float)(panelX + 6), (float)(panelY + 4), (float)btnW, (float)btnH };
-    Rectangle wanderBtn = { (float)(panelX + 6 + btnW + 6), (float)(panelY + 4), (float)btnW, (float)btnH };
+    int btnH = 30;
+    Rectangle manualBtn = { (float)(panelX - 10), (float)(panelY + 4), (float)btnW + 16, (float)btnH };
+    Rectangle wanderBtn = { (float)(panelX + 10 + btnW + 6), (float)(panelY + 4), (float)btnW + 16, (float)btnH };
 
     // Determine current state from player
     bool playerControlled = true;
@@ -457,12 +459,14 @@ void Game::Render() {
         if (pi) { playerControlled = pi->controlled; break; }
     }
 
+    Vector2 panelManual = {panelX - 8, panelY + 10};
     // Draw buttons
     DrawRectangleRec(manualBtn, playerControlled ? DARKGREEN : DARKGRAY);
-    DrawText("Manual (M)", panelX + 12, panelY + 10, 12, RAYWHITE);
+    DrawTextEx(silkscreen_font, "Manual (M)", panelManual, 14, 1, RAYWHITE);
 
+    Vector2 panelWander = {panelX + 10 + btnW + 6, panelY + 10};
     DrawRectangleRec(wanderBtn, !playerControlled ? DARKGREEN : DARKGRAY);
-    DrawText("Wander (W)", panelX + 12 + btnW + 6, panelY + 10, 12, RAYWHITE);
+    DrawTextEx(silkscreen_font, "Wander (W)", panelWander, 14, 1, RAYWHITE);
 
     Vector2 mouse = GetMousePosition();
     bool manualClicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(mouse, manualBtn);
@@ -510,18 +514,20 @@ void Game::Render() {
     }
 
     // Volume controls: position under the debug text (below the Keys line) to avoid overlap
-    int volX = 10; // align left with other debug text
-    int volY = 54; // below the keys debug line (which starts at y=30)
-    int volW = 220;
-    int volH = 28;
-    DrawText("Music", volX, volY, 12, BLACK);
+    float volX = 10; // align left with other debug text
+    float volY = 54; // below the keys debug line (which starts at y=30)
+    Vector2 volMusic = {volX, volY};
+    Vector2 volSFX = {volX, volY + 36};
+    float volW = 220;
+    float volH = 28;
+    DrawTextEx(silkscreen_font, "Music", volMusic, 16, 1, BLACK);
     // Slider background
     DrawRectangle(volX + 50, volY, volW - 60, volH, Fade(LIGHTGRAY, 0.8f));
     // Slider knob
     int knobX = volX + 50 + (int)((volW - 60) * musicVolume) - 6;
     DrawRectangle(knobX, volY + 6, 12, volH - 12, DARKGRAY);
 
-    DrawText("SFX", volX, volY + 36, 12, BLACK);
+    DrawTextEx(silkscreen_font, "SFX", volSFX, 16, 1, BLACK);
     DrawRectangle(volX + 50, volY + 36, volW - 60, volH, Fade(LIGHTGRAY, 0.8f));
     int knob2X = volX + 50 + (int)((volW - 60) * sfxVolume) - 6;
     DrawRectangle(knob2X, volY + 42, 12, volH - 12, DARKGRAY);
