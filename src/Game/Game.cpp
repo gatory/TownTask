@@ -53,6 +53,8 @@ void Game::InitializeEntities() {
     world.AddInteractionZone(pomodoro, POMODORO_WIDTH + 20, POMODORO_HEIGHT + 20, -10, -10);
     world.AddBuilding(pomodoro, "Pomodoro", SceneID::POMODORO_INTERIOR);
     world.AddScene(pomodoro, SceneID::MAIN);
+    // speech bubble for enter prompt on the building in the main scene
+    world.AddSpeechBubble(pomodoro, "", 0, -40);
     
     // Pomodoro interior
     Entity pomodoroInterior = world.CreateEntity();
@@ -80,6 +82,7 @@ void Game::InitializeEntities() {
     world.AddHitbox(pomodoroDoor, DOOR_WIDTH, DOOR_HEIGHT);
     world.AddInteractionZone(pomodoroDoor, DOOR_WIDTH + 20, DOOR_HEIGHT + 20, -10, -10);
     world.AddExitDoor(pomodoroDoor, "Exit (Z)");
+    world.AddSpeechBubble(pomodoroDoor, "", 0, -40);
     world.AddScene(pomodoroDoor, SceneID::POMODORO_INTERIOR);
     
     // ======= LIBRARY BUILDING =======
@@ -90,6 +93,8 @@ void Game::InitializeEntities() {
     world.AddInteractionZone(library, LIBRARY_WIDTH + 20, LIBRARY_HEIGHT + 20, -10, -10);
     world.AddBuilding(library, "Library", SceneID::LIBRARY_INTERIOR);
     world.AddScene(library, SceneID::MAIN);
+    // speech bubble for enter prompt on the building in the main scene
+    world.AddSpeechBubble(library, "", 0, -40);
     
     // Library interior
     Entity libraryInterior = world.CreateEntity();
@@ -123,6 +128,7 @@ void Game::InitializeEntities() {
     world.AddHitbox(libraryDoor, DOOR_WIDTH, DOOR_HEIGHT);
     world.AddInteractionZone(libraryDoor, DOOR_WIDTH + 20, DOOR_HEIGHT + 20, -10, -10);
     world.AddExitDoor(libraryDoor, "Exit (Z)");
+    world.AddSpeechBubble(libraryDoor, "", 0, -40);
     world.AddScene(libraryDoor, SceneID::LIBRARY_INTERIOR);
     
     Entity librarian = world.CreateEntity();
@@ -143,6 +149,8 @@ void Game::InitializeEntities() {
     world.AddInteractionZone(house, HOUSE_WIDTH + 20, HOUSE_HEIGHT + 20, -10, -10);
     world.AddBuilding(house, "My House", SceneID::HOUSE_INTERIOR);
     world.AddScene(house, SceneID::MAIN);
+    // speech bubble for enter prompt on the building in the main scene
+    world.AddSpeechBubble(house, "", 0, -40);
     
     // House interior
     Entity houseInterior = world.CreateEntity();
@@ -177,6 +185,7 @@ void Game::InitializeEntities() {
     world.AddHitbox(houseDoor, DOOR_WIDTH, DOOR_HEIGHT);
     world.AddInteractionZone(houseDoor, DOOR_WIDTH + 20, DOOR_HEIGHT + 20, -10, -10);
     world.AddExitDoor(houseDoor, "Exit (Z)");
+    world.AddSpeechBubble(houseDoor, "", 0, -40);
     world.AddScene(houseDoor, SceneID::HOUSE_INTERIOR);
     
     Entity desk = world.CreateEntity();
@@ -315,7 +324,8 @@ void Game::Render() {
     int currentScene = sceneManager.GetCurrentScene();
 
     if (currentScene == SceneID::MAIN) {
-        // Main scene: render game entities without GUI offset
+        // Main scene: draw the main background stretched to the window, then render entities
+        renderSystem.RenderMainBackground(world);
         renderSystem.RenderEntities(world, SceneID::MAIN, 0);
     } else {
         // Interior: render GUI background + game background

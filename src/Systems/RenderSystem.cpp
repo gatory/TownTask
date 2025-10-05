@@ -20,6 +20,20 @@ void RenderSystem::LoadTextures(World& world) {
             interior->texturesLoaded = true;
         }
     }
+
+    // Try to load a dedicated main background if an entity references AssetPath::MAIN_BACKGROUND
+    if (!mainBackgroundLoaded) {
+        for (Entity e : world.GetEntities()) {
+            Sprite* s = world.GetSprite(e);
+            if (!s) continue;
+            if (s->texturePath == AssetPath::MAIN_BACKGROUND) {
+                // load texture
+                mainBackgroundTexture = LoadTexture(s->texturePath.c_str());
+                mainBackgroundLoaded = true;
+                break;
+            }
+        }
+    }
 }
 
 void RenderSystem::UnloadTextures(World& world) {
@@ -40,6 +54,11 @@ void RenderSystem::UnloadTextures(World& world) {
             }
             interior->texturesLoaded = false;
         }
+    }
+
+    if (mainBackgroundLoaded) {
+        UnloadTexture(mainBackgroundTexture);
+        mainBackgroundLoaded = false;
     }
 }
 
@@ -73,6 +92,31 @@ void RenderSystem::RenderBuildingInteriorBackgrounds(World& world, int currentSc
     }
 }
 
+void RenderSystem::RenderMainBackground(World& world) {
+    // If we loaded a dedicated main background texture, use it; otherwise fall back to entity sprite
+    if (mainBackgroundLoaded) {
+        Rectangle source = {0, 0, (float)mainBackgroundTexture.width, (float)mainBackgroundTexture.height};
+        Rectangle dest = {0, 0, (float)GameConfig::SCREEN_WIDTH, (float)GameConfig::SCREEN_HEIGHT};
+        DrawTexturePro(mainBackgroundTexture, source, dest, {0, 0}, 0, WHITE);
+        return;
+    }
+
+    for (Entity e : world.GetEntities()) {
+        Sprite* sprite = world.GetSprite(e);
+        Scene* scene = world.GetScene(e);
+        if (!sprite || !scene) continue;
+        if (scene->sceneId != SceneID::MAIN) continue;
+        if (sprite->texturePath != AssetPath::MAIN_BACKGROUND) continue;
+
+        if (sprite->loaded) {
+            Rectangle source = {0, 0, (float)sprite->texture.width, (float)sprite->texture.height};
+            Rectangle dest = {0, 0, (float)GameConfig::SCREEN_WIDTH, (float)GameConfig::SCREEN_HEIGHT};
+            DrawTexturePro(sprite->texture, source, dest, {0, 0}, 0, WHITE);
+        }
+        break; // Only draw first matching background
+    }
+}
+
 void RenderSystem::RenderEntities(World& world, int currentScene, int guiHeight) {
     for (Entity e : world.GetEntities()) {
         Scene* scene = world.GetScene(e);
@@ -84,7 +128,9 @@ void RenderSystem::RenderEntities(World& world, int currentScene, int guiHeight)
         Sprite* sprite = world.GetSprite(e);
         if (!pos || !sprite) continue;
 
-        if (world.HasBuildingInterior(e)) continue;
+    // Skip drawing the main background entity here; it's rendered separately stretched to screen
+    if (world.HasBuildingInterior(e)) continue;
+    if (sprite && sprite->texturePath == AssetPath::MAIN_BACKGROUND) continue;
 
         Color color = sprite->tint;
 
@@ -127,14 +173,14 @@ void RenderSystem::RenderSpeechBubbles(World& world, Texture2D speechBubbleTextu
         SpeechBubble* bubble = world.GetSpeechBubble(e);
         Position* pos = world.GetPosition(e);
         if (!bubble || !bubble->active || !pos) continue;
-        
         // For interiors, position is local to game area; add GUI offset when rendering
-        float bubbleX = pos->x + bubble->offsetX;
-        float bubbleY = pos->y + bubble->offsetY;
         Scene* sc = world.GetScene(e);
-        if (sc && sc->sceneId != SceneID::MAIN) {
-            bubbleY += (float)GameConfig::GUI_HEIGHT;
-        }
+        float renderY = pos->y;
+        if (sc && sc->sceneId != SceneID::MAIN) renderY += (float)GameConfig::GUI_HEIGHT;
+
+        // Use per-entity bubble offset for placement (allows CollisionSystem to set offsets dynamically)
+        float bubbleX = pos->x + bubble->offsetX;
+        float bubbleY = renderY + bubble->offsetY;
         
         Rectangle source = {0, 0, (float)speechBubbleTexture.width, (float)speechBubbleTexture.height};
         Rectangle dest = {bubbleX, bubbleY, (float)speechBubbleTexture.width * 2, (float)speechBubbleTexture.height * 2};
