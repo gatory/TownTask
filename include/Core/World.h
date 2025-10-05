@@ -28,6 +28,8 @@ private:
     ComponentMap<Interactable> interactables;
     ComponentMap<LibraryData> libraryData;
     ComponentMap<TodoListData> todoListData;
+    ComponentMap<FaceDetection> faceDetections; 
+    ComponentMap<CharacterStateComponent> characterStates;
 
 public:
     World();
@@ -54,6 +56,18 @@ public:
                         const std::string& type);
     void AddLibraryData(Entity e, const LibraryData& data);
     void AddTodoListData(Entity e, const TodoListData& data);
+    void AddFaceDetection(Entity entity);
+    void AddFaceDetection(Entity entity, float awayThreshold, float reactionCooldown);
+    FaceDetection* GetFaceDetection(Entity entity);
+    bool HasFaceDetection(Entity entity) const;
+    void RemoveFaceDetection(Entity entity);
+    
+    // Character State component methods
+    void AddCharacterState(Entity entity);
+    void AddCharacterState(Entity entity, CharacterState initialState);
+    CharacterStateComponent* GetCharacterState(Entity entity);
+    bool HasCharacterState(Entity entity) const;
+    void RemoveCharacterState(Entity entity);
 
     // Get methods
     Position* GetPosition(Entity e);

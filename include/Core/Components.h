@@ -130,3 +130,37 @@ struct TodoListData {
     bool isAddingNew;
     char inputBuffer[256];
 };
+
+struct FaceDetection {
+    bool isTracking;           // Whether face detection is active
+    bool faceDetected;         // Current face detection state
+    float timeAway;            // How long user has been away
+    float awayThreshold;       // Threshold before reaction (e.g., 5.0 seconds)
+    bool hasReacted;           // Prevent multiple reactions
+    float reactionCooldown;    // Time before can react again
+    float cooldownTimer;       // Current cooldown timer
+    
+    FaceDetection() 
+        : isTracking(false), faceDetected(true), timeAway(0.0f), 
+          awayThreshold(5.0f), hasReacted(false), 
+          reactionCooldown(10.0f), cooldownTimer(0.0f) {}
+};
+
+// Also add these states to your existing components if needed
+enum class CharacterState {
+    Idle,
+    Walking,
+    Angry,
+    Sleeping    // For when user is away too long
+};
+
+// Add to existing PlayerInput or create new component
+struct CharacterStateComponent {
+    CharacterState currentState;
+    float stateTimer;          // How long in current state
+    std::string emotionText;   // Text to display in speech bubble
+    
+    CharacterStateComponent() 
+        : currentState(CharacterState::Idle), stateTimer(0.0f), 
+          emotionText("") {}
+};

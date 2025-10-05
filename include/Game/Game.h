@@ -11,6 +11,7 @@
 #include "Systems/GUISystem.h"
 #include "Systems/LibraryUISystem.h"
 #include "Systems/TodoUISystem.h"
+#include "Systems/FaceDetectionSystem.h"
 #include "raylib.h"
 #include <vector>
 #include <string>
@@ -53,6 +54,11 @@ private:
     void Update(float deltaTime);
     void Render();
     int previousScene = SceneID::MAIN;
+
+    FaceDetectionSystem faceDetectionSystem;
+    Sound sfxAngry;              // Angry reaction sound
+    Sound sfxYawn;               // Sleeping/bored sound
+    bool faceDetectionEnabled;   // Toggle for face detection
 
 public:
     Game();

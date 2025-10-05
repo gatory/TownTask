@@ -80,5 +80,7 @@ namespace AssetPath {
     constexpr const char* SFX_COFFEEAMBIENCE = "assets/white-noise-358382.mp3";
     constexpr const char* SFX_LEVEL_COMPLETE = "assets/game-level-complete-143022.mp3";
     constexpr const char* MAIN_MUSIC = "assets/background.mp3";
+    constexpr const char* SFX_ANGRY = "assets/angry-grunt.mp3";
+    constexpr const char* SFX_YAWN = "assets/yawning.mp3";
 
 }

@@ -7,6 +7,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_PREFIX_PATH "D:/raylib/raylib-5.0_win64_msvc16")
 set(raylib_DIR "D:/raylib/raylib-5.0_win64_msvc16/lib/cmake/raylib")
 
+# Find OpenCV
+set(OpenCV_DIR "D:/opencv/build/x64/vc16/lib")
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+
 
 # Include directories
 include_directories(${CMAKE_SOURCE_DIR}/include)
@@ -25,6 +30,7 @@ set(SOURCES
     src/Systems/GUISystem.cpp
     src/Systems/LibraryUISystem.cpp
     src/Systems/TodoUISystem.cpp
+    src/Systems/FaceDetectionSystem.cpp
     src/Game/Game.cpp
     src/Game/SceneManager.cpp
     src/Game/GameState.cpp
@@ -46,6 +52,7 @@ set(HEADERS
     include/Systems/GUISystem.h
     include/Systems/LibraryUISystem.h
     include/Systems/TodoUISystem.h
+    include/Systems/FaceDetectionSystem.h
     include/Resources/TextureManager.h
     include/Game/Game.h
     include/Game/SceneManager.h
@@ -61,9 +68,9 @@ add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 # Link libraries
 if (WIN32)
     # raylib (static/dll) may require winmm for multimedia timer functions (timeBeginPeriod/timeEndPeriod)
-    target_link_libraries(${PROJECT_NAME} raylib winmm)
+    target_link_libraries(${PROJECT_NAME} raylib winmm ${OpenCV_LIBS})
 else()
-    target_link_libraries(${PROJECT_NAME} raylib)
+    target_link_libraries(${PROJECT_NAME} raylib ${OpenCV_LIBS})
 endif()
 
 # Copy assets folder to build directory

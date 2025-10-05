@@ -40,18 +40,20 @@ Game::Game() {
         sfxCloseDoor = LoadSound(AssetPath::SFX_CLOSE_DOOR);
         sfxCoffeeAmbience = LoadSound(AssetPath::SFX_COFFEEAMBIENCE);
         sfxLevelComplete = LoadSound(AssetPath::SFX_LEVEL_COMPLETE);
+        sfxAngry = LoadSound(AssetPath::SFX_ANGRY);
+        sfxYawn = LoadSound(AssetPath::SFX_YAWN);
         // Load background music
         mainMusic = LoadMusicStream(AssetPath::MAIN_MUSIC);
-    // Assume LoadMusicStream returned a usable Music object; mark as loaded and play
-    mainMusicLoaded = true;
-    PlayMusicStream(mainMusic);
-    musicPlaying = true;
+        // Assume LoadMusicStream returned a usable Music object; mark as loaded and play
+        mainMusicLoaded = true;
+        PlayMusicStream(mainMusic);
+        musicPlaying = true;
             // Apply initial volumes
-            SetMusicVolume(mainMusic, musicVolume);
-            SetSoundVolume(sfxOpenDoor, sfxVolume);
-            SetSoundVolume(sfxCloseDoor, sfxVolume);
-            SetSoundVolume(sfxCoffeeAmbience, sfxVolume);
-            SetSoundVolume(sfxLevelComplete, sfxVolume);
+        SetMusicVolume(mainMusic, musicVolume);
+        SetSoundVolume(sfxOpenDoor, sfxVolume);
+        SetSoundVolume(sfxCloseDoor, sfxVolume);
+        SetSoundVolume(sfxCoffeeAmbience, sfxVolume);
+        SetSoundVolume(sfxLevelComplete, sfxVolume);
     }
 
     InitializeEntities();
@@ -59,6 +61,7 @@ Game::Game() {
 }
 
 Game::~Game() {
+    faceDetectionSystem.Stop();
     UnloadTexture(speechBubbleTexture);
     renderSystem.UnloadTextures(world);
     // Unload sounds
@@ -100,6 +103,8 @@ void Game::InitializeEntities() {
     world.AddAIWander(player, 40.0f, 1.0f, 3.0f);
     world.AddPlayer(player);
     world.AddSpeechBubble(player, AssetPath::SPEECH_BUBBLE, 0, SPEECH_BUBBLE_OFFSET_Y);
+    world.AddFaceDetection(player, 5.0f, 10.0f);  // 5 sec threshold, 10 sec cooldown
+    world.AddCharacterState(player);
     
     // ======= POMODORO BUILDING =======
     Entity pomodoro = world.CreateEntity();
@@ -239,9 +244,9 @@ void Game::InitializeEntities() {
     
     world.AddTodoListData(houseInterior, todoData);
     
-        Entity houseDoor = world.CreateEntity();
-        // place near bottom-center of the house interior local game area
-        world.AddPosition(houseDoor, SCREEN_WIDTH/2 - DOOR_WIDTH/2, GameConfig::GAME_HEIGHT - DOOR_HEIGHT - 10);
+    Entity houseDoor = world.CreateEntity();
+    // place near bottom-center of the house interior local game area
+    world.AddPosition(houseDoor, SCREEN_WIDTH/2 - DOOR_WIDTH/2, GameConfig::GAME_HEIGHT - DOOR_HEIGHT - 10);
     world.AddSprite(houseDoor, "", DOOR_WIDTH, DOOR_HEIGHT, DARKBROWN);
     world.AddHitbox(houseDoor, DOOR_WIDTH, DOOR_HEIGHT);
     world.AddInteractionZone(houseDoor, DOOR_WIDTH + 20, DOOR_HEIGHT + 20, -10, -10);
@@ -264,6 +269,11 @@ void Game::InitializeEntities() {
     Entity playerEntity = INVALID_ENTITY;
     for (Entity e : world.GetEntities()) {
         if (world.HasPlayer(e)) { playerEntity = e; break; }
+    }
+    bool wasFrozen = false;
+    if (playerEntity != INVALID_ENTITY) {
+        PlayerInput* ppi = world.GetPlayerInput(playerEntity);
+        if (ppi) wasFrozen = ppi->frozen;
     }
     if (playerEntity != INVALID_ENTITY) {
         Position* ppos = world.GetPosition(playerEntity);
@@ -321,6 +331,93 @@ void Game::Update(float deltaTime) {
     for (Entity e : world.GetEntities()) {
         if (world.HasPlayer(e)) { playerEntity = e; break; }
     }
+    if (playerEntity != INVALID_ENTITY && faceDetectionEnabled) {
+        FaceDetection* fd = world.GetFaceDetection(playerEntity);
+        CharacterStateComponent* csc = world.GetCharacterState(playerEntity);
+        SpeechBubble* sb = world.GetSpeechBubble(playerEntity);
+        PlayerInput* pi = world.GetPlayerInput(playerEntity);
+        
+        if (fd && csc) {
+            // Update face detection state from system
+            fd->faceDetected = !faceDetectionSystem.IsUserAway();
+            fd->timeAway = faceDetectionSystem.GetTimeAway();
+            
+            // Update cooldown timer
+            if (fd->cooldownTimer > 0.0f) {
+                fd->cooldownTimer -= deltaTime;
+            }
+            
+            // Character reaction logic
+            if (!fd->faceDetected && fd->timeAway >= fd->awayThreshold) {
+                // User has been away too long
+                if (!fd->hasReacted && fd->cooldownTimer <= 0.0f) {
+                    // First time reaction - get angry
+                    csc->currentState = CharacterState::Angry;
+                    csc->stateTimer = 0.0f;
+                    csc->emotionText = "Hey! Where did you go?!";
+                    
+                    // Play angry sound
+                    PlaySfx(sfxAngry);
+                    
+                    // Stop what player was doing
+                    if (pi && !pi->frozen) {
+                        pi->controlled = false; // Switch to wander mode
+                    }
+                    
+                    // Update speech bubble
+                    if (sb) {
+                        sb->active = true;
+                        sb->text = csc->emotionText;
+                    }
+                    
+                    fd->hasReacted = true;
+                    fd->cooldownTimer = fd->reactionCooldown;
+                }
+                else if (fd->timeAway >= fd->awayThreshold * 2.0f) {
+                    // Been away even longer - character gets sleepy/bored
+                    if (csc->currentState != CharacterState::Sleeping) {
+                        csc->currentState = CharacterState::Sleeping;
+                        csc->stateTimer = 0.0f;
+                        csc->emotionText = "*yawn* I guess I'll take a nap...";
+                        
+                        PlaySfx(sfxYawn);
+                        
+                        if (sb) {
+                            sb->active = true;
+                            sb->text = csc->emotionText;
+                        }
+                    }
+                }
+            }
+            else if (fd->faceDetected) {
+                // User is back! Reset and return to normal
+                if (fd->hasReacted) {
+                    // Welcome back message
+                    csc->emotionText = "Oh! You're back! :)";
+                    if (sb) {
+                        sb->active = true;
+                        sb->text = csc->emotionText;
+                    }
+                }
+                
+                // Reset to idle after a moment
+                if (csc->currentState == CharacterState::Angry || 
+                    csc->currentState == CharacterState::Sleeping) {
+                    csc->stateTimer += deltaTime;
+                    if (csc->stateTimer >= 2.0f) {
+                        csc->currentState = CharacterState::Idle;
+                        if (sb) sb->active = false;
+                    }
+                }
+                
+                fd->hasReacted = false;
+                faceDetectionSystem.ResetAwayTimer();
+            }
+            
+            // Update character state timer
+            csc->stateTimer += deltaTime;
+        }
+    }
     if (playerEntity != INVALID_ENTITY) {
         PlayerInput* ppi = world.GetPlayerInput(playerEntity);
         if (ppi) wasFrozen = ppi->frozen;
@@ -362,6 +459,16 @@ void Game::Update(float deltaTime) {
     libraryUISystem.HandleInput(world);
     todoUISystem.HandleInput(world);
 
+    if (playerEntity != INVALID_ENTITY) {
+        PlayerInput* ppi2 = world.GetPlayerInput(playerEntity);
+        if (ppi2 && wasFrozen && !ppi2->frozen) {
+            pomodoroTimer.Reset();
+            SpeechBubble* sb = world.GetSpeechBubble(playerEntity);
+            if (sb) sb->active = false;
+            PlaySfx(sfxLevelComplete);
+        }
+    }
+
     // After systems: if the player was frozen but is now unfrozen, stop the pomodoro
     if (playerEntity != INVALID_ENTITY) {
         PlayerInput* ppi2 = world.GetPlayerInput(playerEntity);
@@ -377,6 +484,16 @@ void Game::Update(float deltaTime) {
     // Toggle debug overlay
     if (IsKeyPressed(KEY_F1)) {
         showDebug = !showDebug;
+    }
+    if (IsKeyPressed(KEY_F2)) {
+        faceDetectionEnabled = !faceDetectionEnabled;
+        if (faceDetectionEnabled) {
+            faceDetectionSystem.Start();
+            std::cout << "Face detection enabled" << std::endl;
+        } else {
+            faceDetectionSystem.Stop();
+            std::cout << "Face detection disabled" << std::endl;
+        }
     }
 
     // Dev teleport: move player to a safe location for testing
@@ -646,6 +763,21 @@ void Game::Render() {
                 }
                 status = TextFormat("HasPos:%d HasHB:%d HasPI:%d HasAnim:%d", hasPos, hasHB, hasPI, hasAnim);
                 DrawText(status.c_str(), GameConfig::SCREEN_WIDTH - 300, 36, 12, BLACK);
+            }
+        }
+    }
+    if (faceDetectionEnabled) {
+        Entity playerEntity = INVALID_ENTITY;
+        for (Entity e : world.GetEntities()) {
+            if (world.HasPlayer(e)) { playerEntity = e; break; }
+        }
+        
+        if (playerEntity != INVALID_ENTITY) {
+            FaceDetection* fd = world.GetFaceDetection(playerEntity);
+            if (fd && !fd->faceDetected) {
+                // Warning indicator when face not detected
+                Vector2 warnPos = {GameConfig::SCREEN_WIDTH - 200, 10};
+                DrawTextEx(silkscreen_font, "! Look at screen !", warnPos, 16, 1, RED);
             }
         }
     }
