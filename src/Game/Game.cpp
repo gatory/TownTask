@@ -2,16 +2,36 @@
 #include "../include/Core/Constants.h"
 #include "../include/Data/DataManager.h"
 #include <ctime>
+#include <algorithm>
+
+// Use the best available texture-filter constant for pixel-art; fall back to numeric 0 if none present
 
 Game::Game() {
     srand(static_cast<unsigned int>(time(nullptr)));
     
-    InitWindow(GameConfig::SCREEN_WIDTH, GameConfig::SCREEN_HEIGHT, "Town Game");
+    InitWindow(GameConfig::SCREEN_WIDTH, GameConfig::SCREEN_HEIGHT, "Task Town");
     
     // Initialize audio device before loading sounds
     InitAudioDevice();
 
     speechBubbleTexture = LoadTexture(AssetPath::SPEECH_BUBBLE);
+    // If the asset is missing, create a simple placeholder so bubbles still render
+    if (speechBubbleTexture.width == 0 || speechBubbleTexture.height == 0) {
+        // generate a small placeholder image (32x24) with a white rounded-ish rectangle
+        Image img = GenImageColor(32, 24, BLANK);
+        // fill with white background
+        Color bg = WHITE;
+        for (int y = 0; y < 24; ++y) {
+            for (int x = 0; x < 32; ++x) {
+                ImageDrawPixel(&img, x, y, bg);
+            }
+        }
+        speechBubbleTexture = LoadTextureFromImage(img);
+        UnloadImage(img);
+    }
+    // Set texture filter to nearest/point (0) to avoid blurring when scaling the bubble texture.
+    // Use numeric 0 to remain compatible with multiple raylib versions.
+    SetTextureFilter(speechBubbleTexture, 0);
     showDebug = false;
 
     // Load SFX (if present)
@@ -22,10 +42,16 @@ Game::Game() {
         sfxLevelComplete = LoadSound(AssetPath::SFX_LEVEL_COMPLETE);
         // Load background music
         mainMusic = LoadMusicStream(AssetPath::MAIN_MUSIC);
-        // Assume LoadMusicStream returned a usable Music object; mark as loaded and play
-        mainMusicLoaded = true;
-        PlayMusicStream(mainMusic);
-        musicPlaying = false;
+    // Assume LoadMusicStream returned a usable Music object; mark as loaded and play
+    mainMusicLoaded = true;
+    PlayMusicStream(mainMusic);
+    musicPlaying = true;
+            // Apply initial volumes
+            SetMusicVolume(mainMusic, musicVolume);
+            SetSoundVolume(sfxOpenDoor, sfxVolume);
+            SetSoundVolume(sfxCloseDoor, sfxVolume);
+            SetSoundVolume(sfxCoffeeAmbience, sfxVolume);
+            SetSoundVolume(sfxLevelComplete, sfxVolume);
     }
 
     InitializeEntities();
@@ -42,7 +68,7 @@ Game::~Game() {
         UnloadSound(sfxCoffeeAmbience);
         UnloadSound(sfxLevelComplete);
         // Unload and stop music
-        if (!musicPlaying) {
+        if (mainMusicLoaded) {
             StopMusicStream(mainMusic);
             UnloadMusicStream(mainMusic);
         }
@@ -73,7 +99,7 @@ void Game::InitializeEntities() {
     // Add AI wander so the player can be set to autonomous
     world.AddAIWander(player, 40.0f, 1.0f, 3.0f);
     world.AddPlayer(player);
-    world.AddSpeechBubble(player, "", 0, SPEECH_BUBBLE_OFFSET_Y);
+    world.AddSpeechBubble(player, AssetPath::SPEECH_BUBBLE, 0, SPEECH_BUBBLE_OFFSET_Y);
     
     // ======= POMODORO BUILDING =======
     Entity pomodoro = world.CreateEntity();
@@ -168,6 +194,8 @@ void Game::InitializeEntities() {
     world.AddPosition(librarian, SCREEN_WIDTH/2 - NPC_SIZE/2, 80);
     world.AddSprite(librarian, AssetPath::LIBRARIAN_SPRITE, NPC_SIZE, NPC_SIZE, WHITE);
     world.AddHitbox(librarian, NPC_SIZE, NPC_SIZE);
+    world.AddAnimation(librarian, PLAYER_ANIMATION_FRAMES, PLAYER_ANIMATION_FRAME_TIME, 
+                      PLAYER_SPRITE_FRAME_WIDTH, PLAYER_SPRITE_FRAME_HEIGHT);
     world.AddInteractionZone(librarian, NPC_SIZE + 30, NPC_SIZE + 30, -15, -15);
     world.AddInteractable(librarian, "Librarian", "Talk to Librarian (X)", "librarian");
     world.AddSpeechBubble(librarian, "", 0, -40);
@@ -285,7 +313,7 @@ void Game::Update(float deltaTime) {
     animationSystem.Update(world, deltaTime);
 
     // Update music stream each frame
-    if (IsAudioDeviceReady() && !musicPlaying) UpdateMusicStream(mainMusic);
+    if (IsAudioDeviceReady() && mainMusicLoaded) UpdateMusicStream(mainMusic);
 
     // Remember player's frozen state to detect unfreeze
     Entity playerEntity = INVALID_ENTITY;
@@ -302,6 +330,8 @@ void Game::Update(float deltaTime) {
     movementSystem.UpdateAIWander(world, deltaTime, currentScene);
     collisionSystem.Update(world, currentScene);
     interactionSystem.Update(world, sceneManager);
+
+    // (speech bubbles are adaptive-sized; no fade/timeout behavior here)
 
     // If player pressed X inside pomodoro interior and is near a barista, start pomodoro
     if (IsKeyPressed(KEY_X) && currentScene == SceneID::POMODORO_INTERIOR && playerEntity != INVALID_ENTITY) {
@@ -399,7 +429,10 @@ void Game::Render() {
 
     // Debug overlay: show whether window has focus and arrow key states
     bool focused = IsWindowFocused();
-    DrawText(focused ? "Window: Focused" : "Window: Not Focused", 10, 10, 14, focused ? GREEN : RED);
+    const char* focusText = focused ? "Window: Focused" : "Window: Not Focused";
+    int focusX = 10;
+    int focusY = 10;
+    DrawText(focusText, focusX, focusY, 14, focused ? DARKBROWN : RED);
     DrawText(TextFormat("Keys L/R/U/D: %d %d %d %d", IsKeyDown(KEY_LEFT), IsKeyDown(KEY_RIGHT), IsKeyDown(KEY_UP), IsKeyDown(KEY_DOWN)),
              10, 30, 12, BLACK);
 
@@ -472,6 +505,74 @@ void Game::Render() {
                     pi->frozen = false;
                 }
                 break;
+            }
+        }
+    }
+
+    // Volume controls: position under the debug text (below the Keys line) to avoid overlap
+    int volX = 10; // align left with other debug text
+    int volY = 54; // below the keys debug line (which starts at y=30)
+    int volW = 220;
+    int volH = 28;
+    DrawText("Music", volX, volY, 12, BLACK);
+    // Slider background
+    DrawRectangle(volX + 50, volY, volW - 60, volH, Fade(LIGHTGRAY, 0.8f));
+    // Slider knob
+    int knobX = volX + 50 + (int)((volW - 60) * musicVolume) - 6;
+    DrawRectangle(knobX, volY + 6, 12, volH - 12, DARKGRAY);
+
+    DrawText("SFX", volX, volY + 36, 12, BLACK);
+    DrawRectangle(volX + 50, volY + 36, volW - 60, volH, Fade(LIGHTGRAY, 0.8f));
+    int knob2X = volX + 50 + (int)((volW - 60) * sfxVolume) - 6;
+    DrawRectangle(knob2X, volY + 42, 12, volH - 12, DARKGRAY);
+
+    // Keyboard shortcuts: M/m increase/decrease music, S/s for sfx
+    if (IsKeyPressed(KEY_M)) {
+        musicVolume = std::min(1.0f, musicVolume + 0.1f);
+        if (IsAudioDeviceReady() && mainMusicLoaded) SetMusicVolume(mainMusic, musicVolume);
+    }
+    if (IsKeyPressed(KEY_M | 0)) { /* placeholder to avoid duplicate define warnings */ }
+    if (IsKeyPressed(KEY_S)) {
+        sfxVolume = std::min(1.0f, sfxVolume + 0.1f);
+        if (IsAudioDeviceReady()) {
+            SetSoundVolume(sfxOpenDoor, sfxVolume);
+            SetSoundVolume(sfxCloseDoor, sfxVolume);
+            SetSoundVolume(sfxCoffeeAmbience, sfxVolume);
+            SetSoundVolume(sfxLevelComplete, sfxVolume);
+        }
+    }
+    // Decrease with Shift + M / Shift + S (or lowercase key handling)
+    if (IsKeyPressed(KEY_LEFT_SHIFT) && IsKeyPressed(KEY_M)) {
+        musicVolume = std::max(0.0f, musicVolume - 0.1f);
+        if (IsAudioDeviceReady() && mainMusicLoaded) SetMusicVolume(mainMusic, musicVolume);
+    }
+    if (IsKeyPressed(KEY_LEFT_SHIFT) && IsKeyPressed(KEY_S)) {
+        sfxVolume = std::max(0.0f, sfxVolume - 0.1f);
+        if (IsAudioDeviceReady()) {
+            SetSoundVolume(sfxOpenDoor, sfxVolume);
+            SetSoundVolume(sfxCloseDoor, sfxVolume);
+            SetSoundVolume(sfxCoffeeAmbience, sfxVolume);
+            SetSoundVolume(sfxLevelComplete, sfxVolume);
+        }
+    }
+
+    // Mouse control: dragging sliders
+    Rectangle musicSlider = { (float)(volX + 50), (float)volY, (float)(volW - 60), (float)volH };
+    Rectangle sfxSlider = { (float)(volX + 50), (float)(volY + 36), (float)(volW - 60), (float)volH };
+    if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+        Vector2 m = GetMousePosition();
+        if (CheckCollisionPointRec(m, musicSlider)) {
+            float rel = (m.x - musicSlider.x) / musicSlider.width;
+            musicVolume = std::clamp(rel, 0.0f, 1.0f);
+            if (IsAudioDeviceReady() && mainMusicLoaded) SetMusicVolume(mainMusic, musicVolume);
+        } else if (CheckCollisionPointRec(m, sfxSlider)) {
+            float rel = (m.x - sfxSlider.x) / sfxSlider.width;
+            sfxVolume = std::clamp(rel, 0.0f, 1.0f);
+            if (IsAudioDeviceReady()) {
+                SetSoundVolume(sfxOpenDoor, sfxVolume);
+                SetSoundVolume(sfxCloseDoor, sfxVolume);
+                SetSoundVolume(sfxCoffeeAmbience, sfxVolume);
+                SetSoundVolume(sfxLevelComplete, sfxVolume);
             }
         }
     }

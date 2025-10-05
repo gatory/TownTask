@@ -71,7 +71,7 @@ namespace AssetPath {
     constexpr const char* HOUSE_2 = "assets/house2.png";
     constexpr const char* HOUSE_3 = "assets/house3.png";
     constexpr const char* HOUSE_4 = "assets/house4.png";
-    constexpr const char* LIBRARIAN_SPRITE = "assets/librarian.png";
+    constexpr const char* LIBRARIAN_SPRITE = "assets/librarian-idle.png";
     constexpr const char* DESK_SPRITE = "assets/desk.png";
     constexpr const char* DOOR_SPRITE = "assets/door.png";
     // Sound assets

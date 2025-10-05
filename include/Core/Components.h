@@ -49,6 +49,12 @@ struct SpeechBubble {
     bool active;
     float offsetX;
     float offsetY;
+    // Fade/timeout
+    float lifetime; // total time to show in seconds (0 = persistent)
+    float elapsed; // time since shown
+    float alpha; // 0..1 current alpha for fade
+    float fadeIn; // seconds to fade in
+    float fadeOut; // seconds to fade out at end of lifetime
 };
 
 struct Scene {

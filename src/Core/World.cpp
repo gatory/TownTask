@@ -50,7 +50,7 @@ void World::AddBuilding(Entity e, const std::string& displayName, int interiorSc
 }
 
 void World::AddSpeechBubble(Entity e, const std::string& text, float offsetX, float offsetY) {
-    speechBubbles[e] = SpeechBubble{ text, false, offsetX, offsetY };
+    speechBubbles[e] = SpeechBubble{ text, false, offsetX, offsetY, 0.0f, 0.0f, 1.0f, 0.08f, 0.08f };
 }
 
 void World::AddScene(Entity e, int sceneId) {

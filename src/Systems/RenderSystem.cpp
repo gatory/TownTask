@@ -1,5 +1,8 @@
 #include "Systems/RenderSystem.h"
 #include "Core/Constants.h"
+#include <sstream>
+#include <vector>
+#include <algorithm>
 
 void RenderSystem::LoadTextures(World& world) {
     for (Entity e : world.GetEntities()) {
@@ -182,19 +185,102 @@ void RenderSystem::RenderSpeechBubbles(World& world, Texture2D speechBubbleTextu
         float bubbleX = pos->x + bubble->offsetX;
         float bubbleY = renderY + bubble->offsetY;
         
-        Rectangle source = {0, 0, (float)speechBubbleTexture.width, (float)speechBubbleTexture.height};
-        Rectangle dest = {bubbleX, bubbleY, (float)speechBubbleTexture.width * 2, (float)speechBubbleTexture.height * 2};
-        DrawTexturePro(speechBubbleTexture, source, dest, {0, 0}, 0, WHITE);
-        
-        std::string text = bubble->text;
-        size_t newlinePos = text.find('\n');
-        if (newlinePos != std::string::npos) {
-            std::string line1 = text.substr(0, newlinePos);
-            std::string line2 = text.substr(newlinePos + 1);
-            DrawText(line1.c_str(), (int)(bubbleX + 8), (int)(bubbleY + 8), 8, BLACK);
-            DrawText(line2.c_str(), (int)(bubbleX + 8), (int)(bubbleY + 20), 8, BLACK);
-        } else {
-            DrawText(text.c_str(), (int)(bubbleX + 8), (int)(bubbleY + 8), 8, BLACK);
+        // Wrap text into lines that fit within a max inner width (in pixels)
+        const int fontSize = GameConfig::SPEECH_BUBBLE_FONT_SIZE;
+        const int lineHeight = GameConfig::SPEECH_BUBBLE_TEXT_LINE_HEIGHT;
+        const int textOffsetX = GameConfig::SPEECH_BUBBLE_TEXT_OFFSET_X;
+        const int textOffsetY = GameConfig::SPEECH_BUBBLE_TEXT_OFFSET_Y;
+
+        int maxInnerWidth = std::min(320, GameConfig::SCREEN_WIDTH / 3); // clamp to reasonable width
+
+        std::vector<std::string> lines;
+        std::string raw = bubble->text;
+        // Split by explicit newlines first
+        std::istringstream rawStream(raw);
+        std::string paragraph;
+        while (std::getline(rawStream, paragraph)) {
+            // wrap this paragraph by words
+            std::istringstream words(paragraph);
+            std::string word;
+            std::string cur;
+            while (words >> word) {
+                std::string attempt = cur.empty() ? word : cur + " " + word;
+                int w = MeasureText(attempt.c_str(), fontSize);
+                if (w <= maxInnerWidth) {
+                    cur = attempt;
+                } else {
+                    if (!cur.empty()) lines.push_back(cur);
+                    // if single word longer than maxInnerWidth, push it anyway
+                    cur = word;
+                    if (MeasureText(cur.c_str(), fontSize) > maxInnerWidth) {
+                        lines.push_back(cur);
+                        cur.clear();
+                    }
+                }
+            }
+            if (!cur.empty()) lines.push_back(cur);
+            // preserve blank line as paragraph separator
+            if (paragraph.empty()) lines.push_back(std::string());
+        }
+
+        if (lines.empty()) lines.push_back(std::string());
+
+        // compute max line width
+        int innerWidth = 0;
+        for (auto &ln : lines) {
+            innerWidth = std::max(innerWidth, MeasureText(ln.c_str(), fontSize));
+        }
+
+        int bubbleInnerW = innerWidth;
+        int bubbleInnerH = (int)lines.size() * lineHeight;
+
+        float destW = (float)(bubbleInnerW + textOffsetX * 2);
+        float destH = (float)(bubbleInnerH + textOffsetY * 2);
+
+        // 9-slice rendering: preserve corners, stretch edges and center
+        const int corner = 8; // pixels in source texture for corners
+        float srcW = (float)speechBubbleTexture.width;
+        float srcH = (float)speechBubbleTexture.height;
+
+        // Source rectangles for 9 patches
+        Rectangle srcTopLeft     = {0, 0, (float)corner, (float)corner};
+        Rectangle srcTop         = {(float)corner, 0, srcW - 2*corner, (float)corner};
+        Rectangle srcTopRight    = {srcW - corner, 0, (float)corner, (float)corner};
+        Rectangle srcLeft        = {0, (float)corner, (float)corner, srcH - 2*corner};
+        Rectangle srcCenter      = {(float)corner, (float)corner, srcW - 2*corner, srcH - 2*corner};
+        Rectangle srcRight       = {srcW - corner, (float)corner, (float)corner, srcH - 2*corner};
+        Rectangle srcBottomLeft  = {0, srcH - corner, (float)corner, (float)corner};
+        Rectangle srcBottom      = {(float)corner, srcH - corner, srcW - 2*corner, (float)corner};
+        Rectangle srcBottomRight = {srcW - corner, srcH - corner, (float)corner, (float)corner};
+
+        // Dest sizes
+        float leftW = (float)corner;
+        float rightW = (float)corner;
+        float topH = (float)corner;
+        float bottomH = (float)corner;
+        float centerW = destW - leftW - rightW;
+        float centerH = destH - topH - bottomH;
+
+        // Draw corners
+        DrawTexturePro(speechBubbleTexture, srcTopLeft,     {bubbleX,                     bubbleY,                      leftW, topH}, {0,0}, 0, WHITE);
+        DrawTexturePro(speechBubbleTexture, srcTopRight,    {bubbleX + leftW + centerW,   bubbleY,                      rightW, topH}, {0,0}, 0, WHITE);
+        DrawTexturePro(speechBubbleTexture, srcBottomLeft,  {bubbleX,                     bubbleY + topH + centerH,     leftW, bottomH}, {0,0}, 0, WHITE);
+        DrawTexturePro(speechBubbleTexture, srcBottomRight, {bubbleX + leftW + centerW,   bubbleY + topH + centerH,     rightW, bottomH}, {0,0}, 0, WHITE);
+
+        // Draw edges
+        DrawTexturePro(speechBubbleTexture, srcTop,  {bubbleX + leftW,           bubbleY,                centerW, topH}, {0,0}, 0, WHITE);
+        DrawTexturePro(speechBubbleTexture, srcBottom,{bubbleX + leftW,           bubbleY + topH + centerH,centerW, bottomH}, {0,0}, 0, WHITE);
+        DrawTexturePro(speechBubbleTexture, srcLeft, {bubbleX,                   bubbleY + topH,          leftW, centerH}, {0,0}, 0, WHITE);
+        DrawTexturePro(speechBubbleTexture, srcRight,{bubbleX + leftW + centerW, bubbleY + topH,          rightW, centerH}, {0,0}, 0, WHITE);
+
+        // Draw center
+        DrawTexturePro(speechBubbleTexture, srcCenter, {bubbleX + leftW, bubbleY + topH, centerW, centerH}, {0,0}, 0, WHITE);
+
+        // Draw text fully opaque
+        for (size_t i = 0; i < lines.size(); ++i) {
+            int tx = (int)(bubbleX + textOffsetX);
+            int ty = (int)(bubbleY + textOffsetY + i * lineHeight);
+            DrawText(lines[i].c_str(), tx, ty, fontSize, BLACK);
         }
     }
 }

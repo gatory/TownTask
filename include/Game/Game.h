@@ -42,6 +42,9 @@ private:
     Music mainMusic;
     bool musicPlaying = false;
     bool mainMusicLoaded = false;
+    // Volume controls (0.0 - 1.0)
+    float musicVolume = 0.5f;
+    float sfxVolume = 0.7f;
     
 
     void PlaySfx(const Sound& s);
