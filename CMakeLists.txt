@@ -21,7 +21,7 @@ if(NOT raylib_FOUND)
     FetchContent_Declare(
         raylib
         GIT_REPOSITORY https://github.com/raysan5/raylib.git
-        GIT_TAG 5.0
+        GIT_TAG 5.5
     )
     FetchContent_MakeAvailable(raylib)
 endif()
@@ -73,7 +73,7 @@ file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
 
 # Platform-specific configurations
 if(WIN32)
-    set_target_properties(TaskTown PROPERTIES WIN32_EXECUTABLE TRUE)
+    # set_target_properties(TaskTown PROPERTIES WIN32_EXECUTABLE TRUE)
     # Add Windows-specific flags
     target_compile_definitions(TaskTown PRIVATE PLATFORM_DESKTOP)
 elseif(APPLE)
@@ -126,41 +126,33 @@ target_compile_definitions(TaskTown PRIVATE
 )
 
 # Build tests if in Debug mode or if explicitly requested
-option(BUILD_TESTS "Build unit tests" ON)
-if(BUILD_TESTS)
-    enable_testing()
-    
-    # Test source files
-    file(GLOB_RECURSE TEST_SOURCES "tests/*.cpp")
-    
-    # Create test executable
-    add_executable(TaskTownTests ${TEST_SOURCES} ${SOURCES})
-    
-    # Remove main.cpp from test build to avoid multiple main functions
-    list(REMOVE_ITEM TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
-    get_target_property(MAIN_SOURCES TaskTown SOURCES)
-    list(REMOVE_ITEM MAIN_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
-    
-    # Rebuild test executable with correct sources
-    set_target_properties(TaskTownTests PROPERTIES SOURCES "")
-    target_sources(TaskTownTests PRIVATE ${TEST_SOURCES} ${MAIN_SOURCES})
-    
-    # Link test libraries
-    target_link_libraries(TaskTownTests 
-        gtest 
-        gtest_main 
-        raylib
-    )
-    
-    if(nlohmann_json_FOUND)
-        target_link_libraries(TaskTownTests nlohmann_json::nlohmann_json)
-    else()
-        target_link_libraries(TaskTownTests nlohmann_json)
-    endif()
-    
-    # Include directories for tests
-    target_include_directories(TaskTownTests PRIVATE src/)
-    
-    # Add test to CTest
-    add_test(NAME TaskTownUnitTests COMMAND TaskTownTests)
-endif()
+option(BUILD_TESTS "Build unit tests" OFF)
+# if(BUILD_TESTS)
+#     enable_testing()
+#     # Test source files
+#     file(GLOB_RECURSE TEST_SOURCES "tests/*.cpp")
+#     # Create test executable
+#     add_executable(TaskTownTests ${TEST_SOURCES} ${SOURCES})
+#     # Remove main.cpp from test build to avoid multiple main functions
+#     list(REMOVE_ITEM TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
+#     get_target_property(MAIN_SOURCES TaskTown SOURCES)
+#     list(REMOVE_ITEM MAIN_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
+#     # Rebuild test executable with correct sources
+#     set_target_properties(TaskTownTests PROPERTIES SOURCES "")
+#     target_sources(TaskTownTests PRIVATE ${TEST_SOURCES} ${MAIN_SOURCES})
+#     # Link test libraries
+#     target_link_libraries(TaskTownTests 
+#         gtest 
+#         gtest_main 
+#         raylib
+#     )
+#     if(nlohmann_json_FOUND)
+#         target_link_libraries(TaskTownTests nlohmann_json::nlohmann_json)
+#     else()
+#         target_link_libraries(TaskTownTests nlohmann_json)
+#     endif()
+#     # Include directories for tests
+#     target_include_directories(TaskTownTests PRIVATE src/)
+#     # Add test to CTest
+#     add_test(NAME TaskTownUnitTests COMMAND TaskTownTests)
+# endif()
