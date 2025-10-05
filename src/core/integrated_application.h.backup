@@ -1,0 +1,122 @@
+#pragma once
+
+#include <raylib.h>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <functional>
+
+// Forward declarations
+class AssetManager;
+class TownState;
+class Character;
+class TaskEngine;
+class PomodoroTimer;
+class HabitTracker;
+class NoteSystem;
+class GamificationEngine;
+
+// Screen types
+enum class ScreenType {
+    TOWN,
+    COFFEE_SHOP,
+    BULLETIN_BOARD,
+    LIBRARY,
+    GYM,
+    HOME,
+    SETTINGS
+};
+
+// Simple screen interface
+class Screen {
+public:
+    virtual ~Screen() = default;
+    virtual void update(float deltaTime) = 0;
+    virtual void render() = 0;
+    virtual void onEnter() {}
+    virtual void onExit() {}
+    virtual bool handleInput() { return false; }
+};
+
+// Integrated application that manages all systems
+class IntegratedApplication {
+public:
+    IntegratedApplication();
+    ~IntegratedApplication();
+    
+    // Lifecycle
+    bool initialize();
+    void shutdown();
+    void update(float deltaTime);
+    void render();
+    
+    // Screen management
+    void switchToScreen(ScreenType screenType);
+    void returnToPreviousScreen();
+    ScreenType getCurrentScreen() const { return currentScreen; }
+    
+    // Building interactions
+    void enterBuilding(const std::string& buildingId);
+    void exitCurrentBuilding();
+    
+    // Game state
+    void saveGame();
+    bool loadGame();
+    void newGame();
+    
+    // System access (for screens to use)
+    TownState* getTownState() const { return townState.get(); }
+    TaskEngine* getTaskEngine() const { return taskEngine.get(); }
+    PomodoroTimer* getPomodoroTimer() const { return pomodoroTimer.get(); }
+    HabitTracker* getHabitTracker() const { return habitTracker.get(); }
+    NoteSystem* getNoteSystem() const { return noteSystem.get(); }
+    GamificationEngine* getGamificationEngine() const { return gamificationEngine.get(); }
+    
+    // Input handling
+    bool handleInput();
+    
+    // Debug
+    void toggleDebugMode();
+    bool isDebugMode() const { return debugMode; }
+
+private:
+    // Initialization helpers
+    bool initializeCoreEngines();
+    bool initializeScreens();
+    void setupSystemCallbacks();
+    
+    // Screen creation
+    std::unique_ptr<Screen> createTownScreen();
+    std::unique_ptr<Screen> createCoffeeShopScreen();
+    std::unique_ptr<Screen> createBulletinBoardScreen();
+    std::unique_ptr<Screen> createLibraryScreen();
+    std::unique_ptr<Screen> createGymScreen();
+    std::unique_ptr<Screen> createHomeScreen();
+    std::unique_ptr<Screen> createSettingsScreen();
+    
+    // State
+    bool initialized = false;
+    bool debugMode = false;
+    ScreenType currentScreen = ScreenType::TOWN;
+    ScreenType previousScreen = ScreenType::TOWN;
+    std::string currentBuildingId;
+    
+    // Core systems
+    std::unique_ptr<TownState> townState;
+    std::unique_ptr<Character> character;
+    std::unique_ptr<TaskEngine> taskEngine;
+    std::unique_ptr<PomodoroTimer> pomodoroTimer;
+    std::unique_ptr<HabitTracker> habitTracker;
+    std::unique_ptr<NoteSystem> noteSystem;
+    std::unique_ptr<GamificationEngine> gamificationEngine;
+    
+    // Screens
+    std::unordered_map<ScreenType, std::unique_ptr<Screen>> screens;
+    
+    // Asset manager reference
+    AssetManager* assetManager = nullptr;
+    
+    // Auto-save
+    float autoSaveTimer = 0.0f;
+    static constexpr float AUTO_SAVE_INTERVAL = 30.0f;
+};

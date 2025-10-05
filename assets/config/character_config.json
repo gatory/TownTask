@@ -1,0 +1,36 @@
+{
+  "character": {
+    "spriteSheet": "characters/cat_sprite_sheet.png",
+    "frameSize": { "width": 32, "height": 32 },
+    "animations": {
+      "idle": {
+        "frames": [0],
+        "frameRate": 1,
+        "loop": true
+      },
+      "walk_down": {
+        "frames": [0, 1, 2, 3],
+        "frameRate": 8,
+        "loop": true
+      },
+      "walk_up": {
+        "frames": [4, 5, 6, 7],
+        "frameRate": 8,
+        "loop": true
+      },
+      "walk_left": {
+        "frames": [8, 9, 10, 11],
+        "frameRate": 8,
+        "loop": true
+      },
+      "walk_right": {
+        "frames": [12, 13, 14, 15],
+        "frameRate": 8,
+        "loop": true
+      }
+    },
+    "defaultAnimation": "idle",
+    "scale": 1.0,
+    "collisionRadius": 12
+  }
+}

@@ -9,6 +9,10 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
+# Performance optimization options
+option(ENABLE_PERFORMANCE_OPTIMIZATIONS "Enable aggressive performance optimizations" ON)
+option(ENABLE_PROFILING "Enable performance profiling" OFF)
+
 # Find packages
 find_package(raylib QUIET)
 if(NOT raylib_FOUND)
@@ -84,8 +88,35 @@ endif()
 # Compiler-specific options
 if(MSVC)
     target_compile_options(TaskTown PRIVATE /W4)
+    
+    # MSVC performance optimizations
+    if(ENABLE_PERFORMANCE_OPTIMIZATIONS AND CMAKE_BUILD_TYPE STREQUAL "Release")
+        target_compile_options(TaskTown PRIVATE /O2 /Ob2 /GL /fp:fast)
+        target_link_options(TaskTown PRIVATE /LTCG /OPT:REF /OPT:ICF)
+    endif()
 else()
     target_compile_options(TaskTown PRIVATE -Wall -Wextra -Wpedantic)
+    
+    # GCC/Clang performance optimizations
+    if(ENABLE_PERFORMANCE_OPTIMIZATIONS AND CMAKE_BUILD_TYPE STREQUAL "Release")
+        target_compile_options(TaskTown PRIVATE -O3 -march=native -mtune=native -flto -ffast-math)
+        target_link_options(TaskTown PRIVATE -flto)
+        
+        # Additional optimizations for GCC
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+            target_compile_options(TaskTown PRIVATE -fuse-linker-plugin)
+            target_link_options(TaskTown PRIVATE -fuse-linker-plugin)
+        endif()
+    endif()
+endif()
+
+# Profiling support
+if(ENABLE_PROFILING)
+    target_compile_definitions(TaskTown PRIVATE ENABLE_PROFILING=1)
+    if(NOT MSVC)
+        target_compile_options(TaskTown PRIVATE -pg)
+        target_link_options(TaskTown PRIVATE -pg)
+    endif()
 endif()
 
 # Debug/Release configurations

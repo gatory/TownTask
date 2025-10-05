@@ -1,0 +1,531 @@
+#include "integrated_application.h"
+#include "../assets/asset_manager.h"
+#include "models/town_state.h"
+#include "models/character.h"
+#include "engines/task_engine.h"
+#include "engines/pomodoro_timer.h"
+#include "engines/habit_tracker.h"
+#include "engines/note_system.h"
+#include "engines/gamification_engine.h"
+#include <iostream>
+
+// Simple screen implementations
+class TownScreen : public Screen {
+private:
+    IntegratedApplication* app;
+    AssetManager* assetManager;
+    
+public:
+    TownScreen(IntegratedApplication* app, AssetManager* assetManager) 
+        : app(app), assetManager(assetManager) {}
+    
+    void update(float deltaTime) override {
+        if (!app->getTownState() || !app->getTownState()->getCharacter()) return;
+        
+        auto character = app->getTownState()->getCharacter();
+        
+        // Handle character movement
+        Vector2 movement = {0, 0};
+        if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) movement.y -= 1;
+        if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) movement.y += 1;
+        if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) movement.x -= 1;
+        if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) movement.x += 1;
+        
+        // Normalize diagonal movement
+        if (movement.x != 0 && movement.y != 0) {
+            movement.x *= 0.707f;
+            movement.y *= 0.707f;
+        }
+        
+        // Update character position
+        float speed = 200.0f;
+        Vector2 newPos = character->getPosition();
+        newPos.x += movement.x * speed * deltaTime;
+        newPos.y += movement.y * speed * deltaTime;
+        
+        // Boundary checking
+        if (newPos.x >= 0 && newPos.x <= 1024 - 32) {
+            character->setPosition({newPos.x, character->getPosition().y});
+        }
+        if (newPos.y >= 0 && newPos.y <= 768 - 32) {
+            character->setPosition({character->getPosition().x, newPos.y});
+        }
+        
+        // Check building interactions
+        const auto& buildings = assetManager->getBuildings();
+        for (const auto& building : buildings) {
+            Vector2 charPos = character->getPosition();
+            Vector2 buildingCenter = {
+                building.position.x + building.size.x / 2,
+                building.position.y + building.size.y / 2
+            };
+            
+            float distance = sqrt(pow(charPos.x + 16 - buildingCenter.x, 2) + 
+                                pow(charPos.y + 16 - buildingCenter.y, 2));
+            
+            if (distance <= building.interactionRadius) {
+                if (IsKeyPressed(KEY_E)) {
+                    app->enterBuilding(building.id);
+                    return;
+                }
+            }
+        }
+    }
+    
+    void render() override {
+        ClearBackground(DARKGREEN);
+        
+        // Draw grass pattern background
+        const int tileSize = assetManager->getTileSize();
+        for (int x = 0; x < 1024; x += tileSize) {
+            for (int y = 0; y < 768; y += tileSize) {
+                Color grassColor = ((x + y) / tileSize) % 2 == 0 ? DARKGREEN : GREEN;
+                DrawRectangle(x, y, tileSize, tileSize, grassColor);
+            }
+        }
+        
+        // Draw buildings
+        const auto& buildings = assetManager->getBuildings();
+        Vector2 charPos = {400, 300}; // Default position
+        if (app->getTownState() && app->getTownState()->getCharacter()) {
+            charPos = app->getTownState()->getCharacter()->getPosition();
+        }
+        
+        for (const auto& building : buildings) {
+            // Check if character is near
+            Vector2 buildingCenter = {
+                building.position.x + building.size.x / 2,
+                building.position.y + building.size.y / 2
+            };
+            
+            float distance = sqrt(pow(charPos.x + 16 - buildingCenter.x, 2) + 
+                                pow(charPos.y + 16 - buildingCenter.y, 2));
+            bool isNear = distance <= building.interactionRadius;
+            
+            // Draw building
+            if (building.textureLoaded) {
+                Color tint = isNear ? Fade(WHITE, 0.8f) : WHITE;
+                DrawTexture(building.texture, 
+                           (int)building.position.x, 
+                           (int)building.position.y, 
+                           tint);
+            } else {
+                Color buildingColor = isNear ? Fade(WHITE, 0.8f) : building.color;
+                DrawRectangle((int)building.position.x, (int)building.position.y, 
+                             (int)building.size.x, (int)building.size.y, buildingColor);
+            }
+            
+            // Draw outline
+            Color outlineColor = isNear ? YELLOW : BLACK;
+            DrawRectangleLines((int)building.position.x, (int)building.position.y, 
+                              (int)building.size.x, (int)building.size.y, outlineColor);
+            
+            // Draw name
+            int textWidth = MeasureText(building.name.c_str(), 12);
+            DrawText(building.name.c_str(), 
+                    (int)(building.position.x + building.size.x/2 - textWidth/2), 
+                    (int)(building.position.y - 16), 
+                    12, WHITE);
+            
+            // Draw interaction prompt
+            if (isNear) {
+                const char* promptText = "Press E to enter";
+                int promptWidth = MeasureText(promptText, 16);
+                int promptX = (int)(charPos.x + 16 - promptWidth/2);
+                int promptY = (int)(charPos.y - 20);
+                
+                DrawRectangle(promptX - 4, promptY - 2, promptWidth + 8, 20, Fade(BLACK, 0.7f));
+                DrawText(promptText, promptX, promptY, 16, WHITE);
+            }
+        }
+        
+        // Draw character
+        DrawCircle((int)(charPos.x + 16), (int)(charPos.y + 16), 12, BLUE);
+        DrawCircleLines((int)(charPos.x + 16), (int)(charPos.y + 16), 12, BLACK);
+        
+        // Draw UI
+        DrawText("TaskTown - Integrated Version", 10, 10, 20, WHITE);
+        DrawText("Use WASD to move, E to enter buildings", 10, 35, 16, LIGHTGRAY);
+        DrawText("ESC to exit", 10, 60, 16, LIGHTGRAY);
+        
+        if (app->isDebugMode()) {
+            char debugText[200];
+            snprintf(debugText, sizeof(debugText), "Debug: Pos(%.0f,%.0f) Buildings:%zu", 
+                    charPos.x, charPos.y, buildings.size());
+            DrawText(debugText, 10, 85, 16, YELLOW);
+        }
+    }
+};
+
+class BuildingScreen : public Screen {
+private:
+    IntegratedApplication* app;
+    std::string buildingId;
+    std::string buildingName;
+    
+public:
+    BuildingScreen(IntegratedApplication* app, const std::string& id, const std::string& name) 
+        : app(app), buildingId(id), buildingName(name) {}
+    
+    void update(float deltaTime) override {
+        // Handle exit
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            app->exitCurrentBuilding();
+        }
+        
+        // Building-specific logic would go here
+        if (buildingId == "coffee_shop" && app->getPomodoroTimer()) {
+            // Update pomodoro timer
+            app->getPomodoroTimer()->update();
+        }
+    }
+    
+    void render() override {
+        ClearBackground(DARKBLUE);
+        
+        // Draw building interior
+        DrawText(("Inside " + buildingName).c_str(), 50, 50, 32, WHITE);
+        DrawText("Press ESC to exit", 50, 100, 20, LIGHTGRAY);
+        
+        // Building-specific UI
+        if (buildingId == "coffee_shop") {
+            DrawText("Coffee Shop - Pomodoro Timer", 50, 150, 24, ORANGE);
+            if (app->getPomodoroTimer()) {
+                auto timer = app->getPomodoroTimer();
+                char timerText[100];
+                snprintf(timerText, sizeof(timerText), "Timer: %s", 
+                        timer->isRunning() ? "Running" : "Stopped");
+                DrawText(timerText, 50, 200, 20, WHITE);
+                
+                DrawText("Press SPACE to start/stop timer", 50, 250, 16, LIGHTGRAY);
+                if (IsKeyPressed(KEY_SPACE)) {
+                    if (timer->isRunning()) {
+                        timer->pause();
+                    } else {
+                        timer->start();
+                    }
+                }
+            }
+        } else if (buildingId == "bulletin_board") {
+            DrawText("Bulletin Board - Task Management", 50, 150, 24, YELLOW);
+            if (app->getTaskEngine()) {
+                auto taskEngine = app->getTaskEngine();
+                char taskText[100];
+                snprintf(taskText, sizeof(taskText), "Tasks: %zu", taskEngine->getAllTasks().size());
+                DrawText(taskText, 50, 200, 20, WHITE);
+            }
+        } else if (buildingId == "library") {
+            DrawText("Library - Notes & Learning", 50, 150, 24, PURPLE);
+            if (app->getNoteSystem()) {
+                auto noteSystem = app->getNoteSystem();
+                char noteText[100];
+                snprintf(noteText, sizeof(noteText), "Notes: %zu", noteSystem->getAllNotes().size());
+                DrawText(noteText, 50, 200, 20, WHITE);
+            }
+        } else if (buildingId == "gym") {
+            DrawText("Gym - Habit Tracking", 50, 150, 24, RED);
+            if (app->getHabitTracker()) {
+                auto habitTracker = app->getHabitTracker();
+                char habitText[100];
+                snprintf(habitText, sizeof(habitText), "Habits: %zu", habitTracker->getAllHabits().size());
+                DrawText(habitText, 50, 200, 20, WHITE);
+            }
+        }
+    }
+};
+
+IntegratedApplication::IntegratedApplication() {
+    // Constructor
+}
+
+IntegratedApplication::~IntegratedApplication() {
+    shutdown();
+}
+
+bool IntegratedApplication::initialize() {
+    if (initialized) {
+        return true;
+    }
+    
+    std::cout << "IntegratedApplication: Initializing..." << std::endl;
+    
+    // Get asset manager instance
+    assetManager = &AssetManager::getInstance();
+    
+    // Initialize core engines
+    if (!initializeCoreEngines()) {
+        std::cerr << "Failed to initialize core engines" << std::endl;
+        return false;
+    }
+    
+    // Initialize screens
+    if (!initializeScreens()) {
+        std::cerr << "Failed to initialize screens" << std::endl;
+        return false;
+    }
+    
+    // Setup system callbacks
+    setupSystemCallbacks();
+    
+    // Start with town screen
+    currentScreen = ScreenType::TOWN;
+    
+    initialized = true;
+    std::cout << "IntegratedApplication: Initialization complete" << std::endl;
+    return true;
+}
+
+void IntegratedApplication::shutdown() {
+    if (!initialized) {
+        return;
+    }
+    
+    std::cout << "IntegratedApplication: Shutting down..." << std::endl;
+    
+    // Save game state
+    saveGame();
+    
+    // Clear screens
+    screens.clear();
+    
+    // Clear core systems
+    gamificationEngine.reset();
+    noteSystem.reset();
+    habitTracker.reset();
+    pomodoroTimer.reset();
+    taskEngine.reset();
+    character.reset();
+    townState.reset();
+    
+    initialized = false;
+    std::cout << "IntegratedApplication: Shutdown complete" << std::endl;
+}
+
+bool IntegratedApplication::initializeCoreEngines() {
+    try {
+        // Create town state and character
+        townState = std::make_unique<TownState>();
+        character = std::make_unique<Character>();
+        townState->setCharacter(character.get());
+        
+        // Create core engines
+        taskEngine = std::make_unique<TaskEngine>();
+        pomodoroTimer = std::make_unique<PomodoroTimer>();
+        habitTracker = std::make_unique<HabitTracker>();
+        noteSystem = std::make_unique<NoteSystem>();
+        gamificationEngine = std::make_unique<GamificationEngine>();
+        
+        std::cout << "Core engines initialized successfully" << std::endl;
+        return true;
+        
+    } catch (const std::exception& e) {
+        std::cerr << "Error initializing core engines: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+bool IntegratedApplication::initializeScreens() {
+    try {
+        // Create all screens
+        screens[ScreenType::TOWN] = createTownScreen();
+        screens[ScreenType::COFFEE_SHOP] = createCoffeeShopScreen();
+        screens[ScreenType::BULLETIN_BOARD] = createBulletinBoardScreen();
+        screens[ScreenType::LIBRARY] = createLibraryScreen();
+        screens[ScreenType::GYM] = createGymScreen();
+        screens[ScreenType::HOME] = createHomeScreen();
+        screens[ScreenType::SETTINGS] = createSettingsScreen();
+        
+        std::cout << "Screens initialized successfully" << std::endl;
+        return true;
+        
+    } catch (const std::exception& e) {
+        std::cerr << "Error initializing screens: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+void IntegratedApplication::setupSystemCallbacks() {
+    // Setup callbacks between systems
+    if (gamificationEngine && taskEngine) {
+        // Connect task completion to gamification
+        // This would be implemented with proper callback system
+    }
+}
+
+std::unique_ptr<Screen> IntegratedApplication::createTownScreen() {
+    return std::make_unique<TownScreen>(this, assetManager);
+}
+
+std::unique_ptr<Screen> IntegratedApplication::createCoffeeShopScreen() {
+    return std::make_unique<BuildingScreen>(this, "coffee_shop", "Coffee Shop");
+}
+
+std::unique_ptr<Screen> IntegratedApplication::createBulletinBoardScreen() {
+    return std::make_unique<BuildingScreen>(this, "bulletin_board", "Bulletin Board");
+}
+
+std::unique_ptr<Screen> IntegratedApplication::createLibraryScreen() {
+    return std::make_unique<BuildingScreen>(this, "library", "Library");
+}
+
+std::unique_ptr<Screen> IntegratedApplication::createGymScreen() {
+    return std::make_unique<BuildingScreen>(this, "gym", "Gym");
+}
+
+std::unique_ptr<Screen> IntegratedApplication::createHomeScreen() {
+    return std::make_unique<BuildingScreen>(this, "home", "Home");
+}
+
+std::unique_ptr<Screen> IntegratedApplication::createSettingsScreen() {
+    return std::make_unique<BuildingScreen>(this, "settings", "Settings");
+}
+
+void IntegratedApplication::update(float deltaTime) {
+    if (!initialized) {
+        return;
+    }
+    
+    // Handle input
+    handleInput();
+    
+    // Update current screen
+    auto it = screens.find(currentScreen);
+    if (it != screens.end() && it->second) {
+        it->second->update(deltaTime);
+    }
+    
+    // Update core systems
+    if (taskEngine) {
+        // taskEngine->update(deltaTime); // Would need to add this method
+    }
+    
+    if (pomodoroTimer) {
+        pomodoroTimer->update();
+    }
+    
+    if (gamificationEngine) {
+        // gamificationEngine->update(deltaTime); // Would need to add this method
+    }
+    
+    // Auto-save
+    autoSaveTimer += deltaTime;
+    if (autoSaveTimer >= AUTO_SAVE_INTERVAL) {
+        saveGame();
+        autoSaveTimer = 0.0f;
+    }
+}
+
+void IntegratedApplication::render() {
+    if (!initialized) {
+        return;
+    }
+    
+    // Render current screen
+    auto it = screens.find(currentScreen);
+    if (it != screens.end() && it->second) {
+        it->second->render();
+    }
+}
+
+bool IntegratedApplication::handleInput() {
+    // Global input handling
+    if (IsKeyPressed(KEY_F1)) {
+        toggleDebugMode();
+        return true;
+    }
+    
+    if (IsKeyPressed(KEY_F5)) {
+        saveGame();
+        return true;
+    }
+    
+    if (IsKeyPressed(KEY_F9)) {
+        loadGame();
+        return true;
+    }
+    
+    return false;
+}
+
+void IntegratedApplication::switchToScreen(ScreenType screenType) {
+    if (currentScreen == screenType) {
+        return;
+    }
+    
+    // Exit current screen
+    auto currentIt = screens.find(currentScreen);
+    if (currentIt != screens.end() && currentIt->second) {
+        currentIt->second->onExit();
+    }
+    
+    previousScreen = currentScreen;
+    currentScreen = screenType;
+    
+    // Enter new screen
+    auto newIt = screens.find(currentScreen);
+    if (newIt != screens.end() && newIt->second) {
+        newIt->second->onEnter();
+    }
+    
+    std::cout << "Switched to screen: " << (int)screenType << std::endl;
+}
+
+void IntegratedApplication::returnToPreviousScreen() {
+    switchToScreen(previousScreen);
+}
+
+void IntegratedApplication::enterBuilding(const std::string& buildingId) {
+    currentBuildingId = buildingId;
+    
+    // Map building ID to screen type
+    if (buildingId == "coffee_shop") {
+        switchToScreen(ScreenType::COFFEE_SHOP);
+    } else if (buildingId == "bulletin_board") {
+        switchToScreen(ScreenType::BULLETIN_BOARD);
+    } else if (buildingId == "library") {
+        switchToScreen(ScreenType::LIBRARY);
+    } else if (buildingId == "gym") {
+        switchToScreen(ScreenType::GYM);
+    } else if (buildingId == "home") {
+        switchToScreen(ScreenType::HOME);
+    }
+    
+    std::cout << "Entered building: " << buildingId << std::endl;
+}
+
+void IntegratedApplication::exitCurrentBuilding() {
+    if (!currentBuildingId.empty()) {
+        std::cout << "Exited building: " << currentBuildingId << std::endl;
+        currentBuildingId.clear();
+        switchToScreen(ScreenType::TOWN);
+    }
+}
+
+void IntegratedApplication::saveGame() {
+    // Simple save implementation
+    std::cout << "Game saved" << std::endl;
+}
+
+bool IntegratedApplication::loadGame() {
+    // Simple load implementation
+    std::cout << "Game loaded" << std::endl;
+    return true;
+}
+
+void IntegratedApplication::newGame() {
+    // Reset all systems
+    if (townState) {
+        // townState->reset();
+    }
+    
+    if (taskEngine) {
+        // taskEngine->reset();
+    }
+    
+    std::cout << "New game started" << std::endl;
+}
+
+void IntegratedApplication::toggleDebugMode() {
+    debugMode = !debugMode;
+    std::cout << "Debug mode: " << (debugMode ? "ON" : "OFF") << std::endl;
+}

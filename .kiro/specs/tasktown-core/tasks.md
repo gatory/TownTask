@@ -174,15 +174,15 @@
     - Test user experience switching between windowed and desktop modes
     - _Requirements: 10.4, 10.5, 10.6, 10.7, 1.6, 1.7_
 
-- [ ] 11. Integrate all systems and add final polish
-  - [ ] 11.1 Connect all screens with proper state management
+- [-] 11. Integrate all systems and add final polish
+  - [x] 11.1 Connect all screens with proper state management
     - Implement ScreenManager for smooth transitions between all screens
     - Connect all building screens to their respective core engines
     - Add proper data flow between UI and core systems
     - Test all user workflows from character movement to task completion
     - _Requirements: 1.3, 1.4, 1.5_
 
-  - [ ] 11.2 Add comprehensive error handling and user feedback
+  - [x] 11.2 Add comprehensive error handling and user feedback
     - Implement error dialogs for save/load failures
     - Add loading screens and progress indicators
     - Create user notifications for achievements and milestones

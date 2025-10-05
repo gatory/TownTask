@@ -1,0 +1,60 @@
+{
+  "map": {
+    "width": 1024,
+    "height": 768,
+    "tileSize": 64,
+    "backgroundType": "grass_pattern"
+  },
+  "buildings": [
+    {
+      "id": "coffee_shop",
+      "name": "Coffee Shop",
+      "position": { "x": 200, "y": 200 },
+      "size": { "width": 96, "height": 128 },
+      "spriteFile": "buildings/coffee_shop.png",
+      "color": { "r": 255, "g": 165, "b": 0, "a": 255 },
+      "interactionRadius": 50,
+      "type": "pomodoro"
+    },
+    {
+      "id": "home",
+      "name": "Home",
+      "position": { "x": 450, "y": 350 },
+      "size": { "width": 128, "height": 96 },
+      "spriteFile": "buildings/home.png",
+      "color": { "r": 0, "g": 100, "b": 255, "a": 255 },
+      "interactionRadius": 50,
+      "type": "rest"
+    },
+    {
+      "id": "bulletin_board",
+      "name": "Bulletin Board",
+      "position": { "x": 600, "y": 150 },
+      "size": { "width": 80, "height": 96 },
+      "spriteFile": "buildings/bulletin_board.png",
+      "color": { "r": 255, "g": 255, "b": 0, "a": 255 },
+      "interactionRadius": 50,
+      "type": "tasks"
+    },
+    {
+      "id": "library",
+      "name": "Library",
+      "position": { "x": 750, "y": 300 },
+      "size": { "width": 120, "height": 100 },
+      "spriteFile": "buildings/library.png",
+      "color": { "r": 128, "g": 0, "b": 128, "a": 255 },
+      "interactionRadius": 50,
+      "type": "notes"
+    },
+    {
+      "id": "gym",
+      "name": "Gym",
+      "position": { "x": 150, "y": 500 },
+      "size": { "width": 110, "height": 90 },
+      "spriteFile": "buildings/gym.png",
+      "color": { "r": 255, "g": 0, "b": 0, "a": 255 },
+      "interactionRadius": 50,
+      "type": "habits"
+    }
+  ]
+}

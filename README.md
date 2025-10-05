@@ -16,38 +16,77 @@ A gamified desktop productivity application that combines task management, note-
 ### Prerequisites
 
 - CMake 3.16 or higher
-- C++17 compatible compiler
+- C++17 compatible compiler (GCC, Clang, or MSVC)
 - Git (for dependency fetching)
 
 ### Build Instructions
 
-#### Quick Start
-```bash
-# Install dependencies (macOS with Homebrew)
-./setup.sh
+#### Windows
+
+**Option 1: Using Visual Studio (Recommended)**
+```cmd
+# Prerequisites: Install Visual Studio 2022 with C++ development tools
+# Download CMake from https://cmake.org/download/
 
 # Build and run
+build.bat
+```
+
+**Option 2: Using MinGW**
+```cmd
+# Prerequisites: Install MinGW-w64 and CMake
+# Add both to your system PATH
+
+# Build
+build.bat
+
+# Run
+run.bat
+```
+
+#### macOS
+```bash
+# Install dependencies
+brew install cmake
+
+# Build and run
+chmod +x build.sh run.sh
 ./run.sh
 ```
 
-#### Manual Build
+#### Linux
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd TaskTown
+# Install dependencies (Ubuntu/Debian)
+sudo apt update
+sudo apt install cmake build-essential git
 
-# Install dependencies (macOS)
-brew install cmake raylib nlohmann-json
+# Or for other distributions, install equivalent packages
+
+# Build and run
+chmod +x build.sh run.sh
+./run.sh
+```
+
+#### Manual Build (All Platforms)
+```bash
+# Create build directory
+mkdir build
+cd build
+
+# Configure (choose appropriate generator for your platform)
+cmake .. -G "Visual Studio 17 2022" -A x64  # Windows with VS2022
+# or
+cmake .. -G "MinGW Makefiles"                # Windows with MinGW
+# or
+cmake ..                                     # macOS/Linux (uses default)
 
 # Build
-./build.sh
+cmake --build . --config Release
 
-# Run
-./build/TaskTown.app/Contents/MacOS/TaskTown  # macOS
-# or
-./build/TaskTown  # Linux
-# or
-./build/TaskTown.exe  # Windows
+# Run the executable
+# Windows: ./Release/TaskTown.exe or ./TaskTown.exe
+# macOS: ./TaskTown.app/Contents/MacOS/TaskTown
+# Linux: ./TaskTown
 ```
 
 ### Dependencies
@@ -55,6 +94,38 @@ brew install cmake raylib nlohmann-json
 The build system automatically fetches the following dependencies:
 - **Raylib**: Graphics and input handling
 - **nlohmann/json**: JSON serialization
+- **Google Test**: Unit testing framework (for development builds)
+
+### Troubleshooting
+
+#### Windows Issues
+
+**"CMake is not recognized"**
+- Download and install CMake from https://cmake.org/download/
+- Make sure to check "Add CMake to system PATH" during installation
+- Restart your command prompt/PowerShell
+
+**"No suitable compiler found"**
+- Install Visual Studio 2022 Community (free) with "Desktop development with C++" workload
+- Or install MinGW-w64 from https://www.mingw-w64.org/
+
+**Build fails with "raylib not found"**
+- This is normal - CMake will automatically download raylib
+- Ensure you have internet connection during first build
+- If behind corporate firewall, you may need to configure git proxy
+
+**"Access denied" or permission errors**
+- Run Command Prompt as Administrator
+- Or use PowerShell with execution policy: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
+
+#### macOS/Linux Issues
+
+**"Permission denied" when running scripts**
+- Make scripts executable: `chmod +x build.sh run.sh`
+
+**Missing dependencies**
+- macOS: Install Xcode Command Line Tools: `xcode-select --install`
+- Linux: Install build essentials for your distribution
 
 ## Project Structure
 
