@@ -1,41 +1,57 @@
-# Prerequisites
-*.d
+# Build directories
+build/
+cmake-build-*/
 
-# Compiled Object files
-*.slo
-*.lo
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Compiled binaries
+TaskTown
+TaskTown.exe
+*.exe
+*.app
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+
+# Object files
 *.o
 *.obj
 
-# Precompiled Headers
-*.gch
-*.pch
-
-# Linker files
-*.ilk
-
-# Debugger Files
-*.pdb
-
-# Compiled Dynamic libraries
+# Library files
+*.a
+*.lib
 *.so
 *.dylib
 *.dll
 
-# Fortran module files
-*.mod
-*.smod
+# Debug files
+*.pdb
+*.dSYM/
 
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
+# macOS specific
+.DS_Store
+*.DS_Store
 
-# Executables
-*.exe
-*.out
-*.app
+# Windows specific
+Thumbs.db
+ehthumbs.db
 
-# debug information files
-*.dwo
+# Temporary files
+*.tmp
+*.temp
+
+# Logs
+*.log
+
+# User data (will be created at runtime)
+save_data/
+user_data/
